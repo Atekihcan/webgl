@@ -10,11 +10,11 @@ function loadFileAJAX(name) {
         okStatus = document.location.protocol === "file:" ? 0 : 200;
     xhr.open('GET', name, false);
     xhr.send(null);
+    console.log(xhr.responseText);
     return xhr.status == okStatus ? xhr.responseText : null;
 };
 
 function getShader(gl, type, shaderSource) {
-    console.log(shaderSource);
     var shader = gl.createShader(type);
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
@@ -78,7 +78,6 @@ window.onload = function init()
     var vertices = new Float32Array([-1, -1, 0, 1, 1, -1]);
 
     //  Load shaders and initialize attribute buffers
-    console.log(vShaderSource);
     var program = initShaders( gl, vShaderSource, fShaderSource );
     gl.useProgram( program );
 
