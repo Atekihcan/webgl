@@ -70,6 +70,7 @@ window.onload = function init()
         if (err) {
             throw err;
         } else {
+            console.log(results.vert);
             initWebGL(results.vert, results.frag);
         }
     });
@@ -77,7 +78,7 @@ window.onload = function init()
     var vertices = new Float32Array([-1, -1, 0, 1, 1, -1]);
 
     //  Load shaders and initialize attribute buffers
-
+    console.log(vShaderSource);
     var program = initShaders( gl, vShaderSource, fShaderSource );
     gl.useProgram( program );
 
