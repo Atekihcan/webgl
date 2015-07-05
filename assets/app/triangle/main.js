@@ -14,6 +14,7 @@ function loadFileAJAX(name) {
 };
 
 function getShader(gl, type, shaderSource) {
+    console.log(shaderSource);
     var shader = gl.createShader(type);
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
