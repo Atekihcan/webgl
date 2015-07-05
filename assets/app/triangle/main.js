@@ -6,7 +6,7 @@ var points;
 var vShaderSource, fShaderSource;
 
 function loadFileAJAX(name) {
-    conlose.log(name);
+    console.log(name);
     var xhr = new XMLHttpRequest(),
         okStatus = document.location.protocol === "file:" ? 0 : 200;
     xhr.open('GET', name, false);
