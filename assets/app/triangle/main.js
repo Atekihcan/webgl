@@ -6,11 +6,11 @@ var points;
 var vShaderSource, fShaderSource;
 
 function loadFileAJAX(name) {
+    conlose.log(name);
     var xhr = new XMLHttpRequest(),
         okStatus = document.location.protocol === "file:" ? 0 : 200;
     xhr.open('GET', name, false);
     xhr.send(null);
-    console.log(xhr.responseText);
     return xhr.status == okStatus ? xhr.responseText : null;
 };
 
@@ -61,10 +61,10 @@ window.onload = function init()
 {
     async.parallel({
         vert: function(callback) {
-            callback(null, loadFileAJAX("/assets/app/triangle/shader.vert"));
+            callback(null, loadFileAJAX("/webgl/assets/app/triangle/shader.vert"));
         },
         frag: function(callback) {
-            callback(null, loadFileAJAX("/assets/app/triangle/shader.frag"));
+            callback(null, loadFileAJAX("/webgl/assets/app/triangle/shader.frag"));
         }
     }, function(err, results) {
         if (err) {
