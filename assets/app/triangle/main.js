@@ -6,7 +6,6 @@ var points;
 var vShaderSource, fShaderSource;
 
 function loadFileAJAX(name) {
-    console.log(name);
     var xhr = new XMLHttpRequest(),
         okStatus = document.location.protocol === "file:" ? 0 : 200;
     xhr.open('GET', name, false);
@@ -70,7 +69,6 @@ window.onload = function init()
         if (err) {
             throw err;
         } else {
-            console.log(results.vert);
             initWebGL(results.vert, results.frag);
         }
     });
