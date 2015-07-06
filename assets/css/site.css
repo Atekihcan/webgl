@@ -1,5 +1,3 @@
-@import url(http://fonts.googleapis.com/css?family=Josefin+Sans:400,400italic,700,700italic);
-
 body {
     font-family: 'Verdana', Helvetica, sans-serif;
     padding-bottom: 60px;
@@ -20,12 +18,17 @@ blockquote{
     font-size: 1.2em;
 }
 
+canvas{
+    width: 100%;
+    height: auto;
+}
+
 /* page */
 .page-header{
     margin: 10px 0;
     text-align: center;
     padding-bottom: 25px;
-    font-family: 'Josefin Sans', sans-serif;
+    font-family: 'Verdana,' Helvetica', sans-serif;
 }
 .page-header h1{
     margin: 0;
@@ -37,11 +40,6 @@ blockquote{
     hyphens: auto;
     -ms-hyphens: auto;
     -moz-hyphens: auto;
-}
-
-.canvas-wrapper{
-    display: block;
-    margin: 0 auto;
 }
 
 /* for landing page */
