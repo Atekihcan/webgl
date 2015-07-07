@@ -65,6 +65,7 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(thetaLocation, theta);
     gl.uniform1i(twistLocation, twist);
+    theta += 0.01;
     gl.drawArrays(gl.TRIANGLES, 0, pos.length);
     window.requestAnimFrame(render);
 }
