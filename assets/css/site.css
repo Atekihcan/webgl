@@ -27,8 +27,8 @@ canvas{
 .page-header{
     margin: 10px 0;
     text-align: center;
-    padding-bottom: 25px;
-    font-family: 'Verdana,' Helvetica', sans-serif;
+    padding-bottom: 10px;
+    font-family: 'Verdana, Helvetica, sans-serif;
 }
 .page-header h1{
     margin: 0;
@@ -38,6 +38,7 @@ canvas{
     font-size: 1.0em;
     text-align: justify;
     hyphens: auto;
+    padding-bottom: 20px;
     -ms-hyphens: auto;
     -moz-hyphens: auto;
 }

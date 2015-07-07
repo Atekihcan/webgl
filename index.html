@@ -1,54 +1,21 @@
 ---
 layout: default
-date: 2014-10-19 23:51
+date:   2015-07-03 18:51
 ---
 
 <div class="row">
     <div class="col-xs-12 col-sm-12 col-md-offset-1 col-md-10 col-lg-offset-2 col-lg-8">
-        {% for page in paginator.posts %}
-            <div class="blog-short page-content">
-                <h3><a href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a></h3>
-                <div class="margin10">
-                    <small>
-                        <i clss="fa fa-calendar"></i>
-                        <time>
-                            &nbsp;{{ page.date | date:'%d %B, %Y'}}
-                        </time>
-                        &nbsp;|&nbsp;
-                        <i class="fa fa-clock-o"></i>{% include reading_time.html %} read
-                        &nbsp;|&nbsp;
-                        <i class="fa fa-tags"></i>
-                        {% include list_tags.html %}
-                    </small>
-                </div>
-                {% if page.thumbnail %}
-                    <img src="{{ page.thumbnail }}" alt="{{ page.title }}"  class="pull-left img-responsive thumb margin10 img-thumbnail" />
-                {% endif %}
-                <article class="excerpt">{{ page.excerpt }}</article>
-                <small>
-                <i class="fa fa-comments pull-left" style="padding-top: 3px;"></i>
-                <a class="pull-left marginBottom10" href="{{ page.url | prepend: site.baseurl }}#disqus_thread" data-disqus-identifier="{{ page.url }}"></a>
-                <a class="pull-right marginBottom10" href="{{ page.url | prepend: site.baseurl }}">Read More <i class="fa fa-angle-double-right"></i></a>
-                </small>
-            </div>
-        {% endfor %}
-
-        <!-- Pagination -->
-        {% if paginator.total_pages > 1 %}
-            <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
-                <ul class="pager">
-                {% if paginator.previous_page %}
-                    <li class="previous">
-                        <a itemprop="url" href="{{ paginator.previous_page_path | replace:'//','/' }}"><i class="fa fa-angle-double-left"></i> <span itemprop="name">Newer Posts</span></a>
-                    </li>
-                {% endif %}
-                {% if paginator.next_page %}
-                    <li class="next">
-                        <a itemprop="url" href="{{ paginator.next_page_path | replace:'//','/' }}"><span itemprop="name">Older Posts</span> <i class="fa fa-angle-double-right"></i></a>
-                    </li>
-                {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
+    {% for post in site.posts reversed %}
+        <div class="col-md-3 col-sm-3 col-xs-6 text-center">
+            <b><a href="{{ post.url | prepend: site.baseurl }}">{{ post.subtitle }}</a></b><br/>
+            <small>
+                <i class="fa fa-calendar"></i>
+                <time>
+                    &nbsp;{{ post.date | date:'%d %B, %Y'}}
+                </time>
+                <i class="fa fa-calendar"></i>
+            </small>
+        </div>
+    {% endfor %}
     </div>
 </div>
