@@ -3,10 +3,11 @@
 /* global variables */
 var gl;
 var pos = [], col = [];
-var numDivision = 1;
-var theta = 0.0, twist = 0;
+var numDivision = 4;
+var theta = Math.PI, twist = 1;
 var thetaLocation, twistLocation;
 var vShaderSource, fShaderSource;
+var vertices = createPolygon(0.8, 3);
 
 /***************************************************
  *              WebGL context functions            *
@@ -30,8 +31,13 @@ function initWebGL(vString, fString) {
 /* declare vertex data and upload it to GPU */
 function prepareVertexData() {
     // declare vertex data
-    var vertices = createPolygon(0.8, 3);
-    divideTriangle(vertices[0], vertices[1], vertices[2], numDivision);
+    if (vertices.length == 3) {
+        divideTriangle(vertices[0], vertices[1], vertices[2], numDivision);
+    } else {
+        for (var i = 0; i < vertices.length; i++) {
+            divideTriangle([0, 0], vertices[i], vertices[(i + 1) % vertices.length], numDivision);
+        }
+    }
 
     // compile shaders and get the program object
     var program = getProgram(gl, vShaderSource, fShaderSource);
@@ -65,7 +71,6 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(thetaLocation, theta);
     gl.uniform1i(twistLocation, twist);
-    theta += 0.01;
     gl.drawArrays(gl.TRIANGLES, 0, pos.length);
     window.requestAnimFrame(render);
 }
@@ -116,6 +121,7 @@ function createPolygon(radius, numPoints) {
 /* reinitialize vertex data */
 function reInit() {
     pos = [];
+    col = [];
     prepareVertexData();
 }
 
@@ -141,7 +147,24 @@ function setSubdivisionLevel(value, id) {
     }
 }
 
+/* set base polygon type */
+function setPolygon(numPoints, id) {
+    var names = ["Triangle", "Square", "Pentagon", "Hexagon", "Heptagon", "Octagon"];
+    vertices = createPolygon(0.8, numPoints);
+    if (id) {
+        document.getElementById(id).innerHTML = names[numPoints - 3];
+    }
+    reInit();
+}
+
 /* enable/disable twist */
-function setTwist(flag) {
+function setTwist(flag, id) {
     twist = flag;
+    if (id) {
+        if (flag) {
+            document.getElementById(id).innerHTML = "enabled";
+        } else {
+            document.getElementById(id).innerHTML = "disabled";
+        }
+    }
 }

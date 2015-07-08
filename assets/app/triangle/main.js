@@ -5,45 +5,6 @@ var gl;
 var points = [];
 var vShaderSource, fShaderSource;
 
-/* function for getting shader code from remote source */
-function loadFileAJAX(name) {
-    var xhr = new XMLHttpRequest(),
-        okStatus = document.location.protocol === "file:" ? 0 : 200;
-    xhr.open('GET', name, false);
-    xhr.send(null);
-    return xhr.status == okStatus ? xhr.responseText : null;
-};
-
-/* function for getting compiled shader */
-function getShader(gl, type, shaderSource) {
-    var shader = gl.createShader(type);
-    gl.shaderSource(shader, shaderSource);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        alert(gl.getShaderInfoLog(shader));
-        return null;
-    }
-    return shader;
-};
-
-/* function for getting program object */
-function getProgram(gl, vShaderSource, fShaderSource) {
-    var vertShader = getShader(gl, gl.VERTEX_SHADER, vShaderSource);
-    var fragShader = getShader(gl, gl.FRAGMENT_SHADER, fShaderSource);
-    var program = gl.createProgram();
-
-    gl.attachShader(program, vertShader);
-    gl.attachShader(program, fragShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        alert("[ERROR] Could not initialise shaders");
-        return null;
-    }
-    return program;
-};
-
 /* function for initializing WebGL context */
 function initWebGL(vString, fString) {
     vShaderSource = vString;
@@ -64,22 +25,7 @@ function initWebGL(vString, fString) {
 // initialize application
 window.onload = function init()
 {
-    // asynchronously load shader code from remote source in parallel
-    // and then initialize WebGL
-    async.parallel({
-        vert: function(callback) {
-            callback(null, loadFileAJAX("/webgl/assets/app/triangle/shader.vert"));
-        },
-        frag: function(callback) {
-            callback(null, loadFileAJAX("/webgl/assets/app/triangle/shader.frag"));
-        }
-    }, function(err, results) {
-        if (err) {
-            throw err;
-        } else {
-            initWebGL(results.vert, results.frag);
-        }
-    });
+    asyncLoadShaders("triangle", initWebGL);
 
     // declare vertex data
     //var vertices = new Float32Array([-1, -1, 0, 1, 1, -1]);
