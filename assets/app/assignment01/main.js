@@ -2,12 +2,14 @@
 
 /* global variables */
 var gl;
-var pos = [], col = [];
+var posBuf, colBuf;
+var pos = [], col = [], vertices = [];
 var numDivision = 4;
+var polygonSides = 3;
+var drawWireFrame = true;
 var theta = Math.PI, twist = 1;
 var thetaLocation, twistLocation;
 var vShaderSource, fShaderSource;
-var vertices = createPolygon(0.8, 3);
 
 /***************************************************
  *              WebGL context functions            *
@@ -24,6 +26,8 @@ function initWebGL(vString, fString) {
         return;
     }
     // initialize WebGL context
+    posBuf = gl.createBuffer();
+    colBuf = gl.createBuffer();
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
 };
@@ -31,6 +35,7 @@ function initWebGL(vString, fString) {
 /* declare vertex data and upload it to GPU */
 function prepareVertexData() {
     // declare vertex data
+    vertices = createPolygon(0.8, polygonSides);
     if (vertices.length == 3) {
         divideTriangle(vertices[0], vertices[1], vertices[2], numDivision);
     } else {
@@ -48,14 +53,12 @@ function prepareVertexData() {
 
     // load data into GPU and associate shader variables with vertex data
     // vertex positions
-    var posBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(pos), gl.STATIC_DRAW);
     var vPos = gl.getAttribLocation(program, "vPos");
     gl.vertexAttribPointer(vPos, pos[0].length, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPos);
     // vertex colors
-    var colBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(col), gl.STATIC_DRAW);
     var vCol = gl.getAttribLocation(program, "vCol");
@@ -71,7 +74,13 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(thetaLocation, theta);
     gl.uniform1i(twistLocation, twist);
-    gl.drawArrays(gl.TRIANGLES, 0, pos.length);
+    if (drawWireFrame) {
+        for (var i = 0; i < pos.length; i += 3) {
+            gl.drawArrays(gl.LINE_LOOP, i, 3);
+        }
+    } else {
+        gl.drawArrays(gl.TRIANGLES, 0, pos.length);
+    }
     window.requestAnimFrame(render);
 }
 
@@ -88,7 +97,12 @@ window.onload = function init()
  ***************************************************/
 /* generate position and color of vertices for a triangle */
 function triangle(a, b, c) {
-    var color = [Math.random(), Math.random(), Math.random()];
+    if (drawWireFrame) {
+        var color = [0.2, 0.7, 0.89];
+    } else {
+        var color = [Math.random(), Math.random(), Math.random()];
+    }
+
     col.push(color, color, color);
     pos.push(a, b, c);
 }
@@ -147,24 +161,32 @@ function setSubdivisionLevel(value, id) {
     }
 }
 
+
+
 /* set base polygon type */
-function setPolygon(numPoints, id) {
+function setPolygon(numSides, id) {
     var names = ["Triangle", "Square", "Pentagon", "Hexagon", "Heptagon", "Octagon"];
-    vertices = createPolygon(0.8, numPoints);
+    polygonSides = numSides;
     if (id) {
-        document.getElementById(id).innerHTML = names[numPoints - 3];
+        document.getElementById(id).innerHTML = names[numSides - 3];
     }
     reInit();
 }
 
 /* enable/disable twist */
-function setTwist(flag, id) {
-    twist = flag;
+function setTwist(doTwist, id) {
+    twist = doTwist;
     if (id) {
-        if (flag) {
+        if (doTwist) {
             document.getElementById(id).innerHTML = "enabled";
         } else {
             document.getElementById(id).innerHTML = "disabled";
         }
     }
+}
+
+/* set drawing type */
+function setDrawType(doWire) {
+    drawWireFrame = doWire;
+    reInit();
 }
