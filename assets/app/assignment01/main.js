@@ -6,6 +6,7 @@ var posBuf, colBuf;
 var pos = [], col = [], vertices = [];
 var numDivision = 4;
 var polygonSides = 3;
+var stopRender = false;
 var drawWireFrame = true;
 var theta = Math.PI, twist = 1;
 var thetaLocation, twistLocation;
@@ -47,6 +48,7 @@ function prepareVertexData() {
     // compile shaders and get the program object
     var program = getProgram(gl, vShaderSource, fShaderSource);
     if (program === null) {
+        stopRender = true;
         return;
     }
     gl.useProgram(program);
@@ -71,17 +73,19 @@ function prepareVertexData() {
 
 /* render a frames recursively */
 function render() {
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform1f(thetaLocation, theta);
-    gl.uniform1i(twistLocation, twist);
-    if (drawWireFrame) {
-        for (var i = 0; i < pos.length; i += 3) {
-            gl.drawArrays(gl.LINE_LOOP, i, 3);
+    if (!stopRender) {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform1f(thetaLocation, theta);
+        gl.uniform1i(twistLocation, twist);
+        if (drawWireFrame) {
+            for (var i = 0; i < pos.length; i += 3) {
+                gl.drawArrays(gl.LINE_LOOP, i, 3);
+            }
+        } else {
+            gl.drawArrays(gl.TRIANGLES, 0, pos.length);
         }
-    } else {
-        gl.drawArrays(gl.TRIANGLES, 0, pos.length);
+        window.requestAnimFrame(render);
     }
-    window.requestAnimFrame(render);
 }
 
 /* start the application */
@@ -160,8 +164,6 @@ function setSubdivisionLevel(value, id) {
         reInit();
     }
 }
-
-
 
 /* set base polygon type */
 function setPolygon(numSides, id) {

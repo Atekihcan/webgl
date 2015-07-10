@@ -1,3 +1,5 @@
+var vertShaderPath, fragShaderPath;
+
 /* function for getting shader code from remote source */
 function loadFileAJAX(name) {
     var xhr = new XMLHttpRequest(),
@@ -9,6 +11,14 @@ function loadFileAJAX(name) {
 
 /* function for getting compiled shader */
 function getShader(gl, type, shaderSource) {
+    if (shaderSource == null) {
+        if (type == gl.VERTEX_SHADER) {
+            alert("Unable to load vertex shader from " + vertShaderPath);
+        } else {
+            alert("Unable to load fragment shader from " + fragShaderPath);
+        }
+        return null;
+    }
     var shader = gl.createShader(type);
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
@@ -31,7 +41,6 @@ function getProgram(gl, vertShaderSource, fragShaderSource) {
     gl.linkProgram(program);
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        alert("[ERROR] Could not initialise shaders");
         return null;
     }
     return program;
@@ -39,12 +48,15 @@ function getProgram(gl, vertShaderSource, fragShaderSource) {
 
 /* asynchronously load shader code in parallel and then initialize WebGL */
 function asyncLoadShaders(appName, initWebGL) {
+    vertShaderPath = "/webgl/assets/app/" + appName + "/shader.vert";
+    fragShaderPath = "/webgl/assets/app/" + appName + "/shader.frag";
+    
     async.parallel({
         vert: function(callback) {
-            callback(null, loadFileAJAX("/webgl/assets/app/" + appName + "/shader.vert"));
+            callback(null, loadFileAJAX(vertShaderPath));
         },
         frag: function(callback) {
-            callback(null, loadFileAJAX("/webgl/assets/app/" + appName + "/shader.frag"));
+            callback(null, loadFileAJAX(fragShaderPath));
         }
     }, function(err, results) {
         if (err) {

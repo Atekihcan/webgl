@@ -3,7 +3,7 @@ attribute vec3 vCol;
 uniform float theta;
 uniform int twist;
 
-varying vec4 outCol;
+varying vec4 fCol;
 
 void main()
 {
@@ -21,5 +21,5 @@ void main()
     gl_Position.y = s * vPos.x + c * vPos.y;
     gl_Position.z = 0.0;
     gl_Position.w = 1.0;
-    outCol = vec4(vCol, 1);
+    fCol = vec4(vCol, 1);
 }
