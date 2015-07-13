@@ -1,7 +1,7 @@
 "use strict";
 
 /* global variables */
-var gl;
+var gl, program;
 var posBuf, colBuf;
 var pos = [], col = [], vertices = [];
 var numDivision = 4;
@@ -31,6 +31,14 @@ function initWebGL(vString, fString) {
     colBuf = gl.createBuffer();
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
+
+    // compile shaders and get the program object
+    var program = getProgram(gl, vShaderSource, fShaderSource);
+    if (program === null) {
+        stopRender = true;
+        return;
+    }
+    gl.useProgram(program);
 };
 
 /* declare vertex data and upload it to GPU */
@@ -44,14 +52,6 @@ function prepareVertexData() {
             divideTriangle([0, 0], vertices[i], vertices[(i + 1) % vertices.length], numDivision);
         }
     }
-
-    // compile shaders and get the program object
-    var program = getProgram(gl, vShaderSource, fShaderSource);
-    if (program === null) {
-        stopRender = true;
-        return;
-    }
-    gl.useProgram(program);
 
     // load data into GPU and associate shader variables with vertex data
     // vertex positions
