@@ -33,7 +33,7 @@ function initWebGL(vString, fString) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
     // compile shaders and get the program object
-    var program = getProgram(gl, vShaderSource, fShaderSource);
+    program = getProgram(gl, vShaderSource, fShaderSource);
     if (program === null) {
         stopRender = true;
         return;
