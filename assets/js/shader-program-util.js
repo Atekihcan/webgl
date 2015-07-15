@@ -46,23 +46,25 @@ function getProgram(gl, vertShaderSource, fragShaderSource) {
     return program;
 };
 
+/* create ajax file loading callbacks */
+function createTask(path) {
+    return function(callback) { callback(null, loadFileAJAX(path)); };
+}
+
 /* asynchronously load shader code in parallel and then initialize WebGL */
-function asyncLoadShaders(appName, initWebGL) {
-    vertShaderPath = "/webgl/assets/app/" + appName + "/shader.vert";
-    fragShaderPath = "/webgl/assets/app/" + appName + "/shader.frag";
-    
-    async.parallel({
-        vert: function(callback) {
-            callback(null, loadFileAJAX(vertShaderPath));
-        },
-        frag: function(callback) {
-            callback(null, loadFileAJAX(fragShaderPath));
-        }
-    }, function(err, results) {
+function asyncLoadShaders(appName, shaderArray, initWebGL) {
+    var taskList = [];
+    // populate taskList with shader loading callbacks
+    for (var i = 0; i < shaderArray.length; i++) {
+        path = "/webgl/assets/app/" + appName + "/" + shaderArray[i];
+        taskList.push(createTask(path));
+    }
+    // asynchronously load shaders
+    async.parallel(taskList, function(err, results) {
         if (err) {
             throw err;
         } else {
-            initWebGL(results.vert, results.frag);
+            initWebGL(results);
         }
     });
 }

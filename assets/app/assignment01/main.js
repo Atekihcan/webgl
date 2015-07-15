@@ -1,7 +1,7 @@
 "use strict";
 
 /* global variables */
-var gl, program;
+var gl, currentProgram, program = [];
 var posBuf, colBuf;
 var pos = [], col = [], vertices = [];
 var numDivision = 4;
@@ -10,15 +10,13 @@ var stopRender = false;
 var drawWireFrame = true;
 var theta = Math.PI, twist = 1;
 var thetaLocation, twistLocation;
-var vShaderSource, fShaderSource;
+var shaders = ["shader.vert", "shader.frag"]
 
 /***************************************************
  *              WebGL context functions            *
  ***************************************************/
 /* initialize WebGL context */
-function initWebGL(vString, fString) {
-    vShaderSource = vString;
-    fShaderSource = fString;
+function initWebGL(shaderSources) {
     var canvas = document.getElementById("gl-canvas");
 
     gl = WebGLUtils.setupWebGL( canvas );
@@ -33,12 +31,7 @@ function initWebGL(vString, fString) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
     // compile shaders and get the program object
-    program = getProgram(gl, vShaderSource, fShaderSource);
-    if (program === null) {
-        stopRender = true;
-        return;
-    }
-    gl.useProgram(program);
+    programs.push(getProgram(gl, shaderSources[0], shaderSources[1]));
 };
 
 /* declare vertex data and upload it to GPU */
@@ -55,20 +48,21 @@ function prepareVertexData() {
 
     // load data into GPU and associate shader variables with vertex data
     // vertex positions
+    gl.useProgram(currentProgram);
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(pos), gl.STATIC_DRAW);
-    var vPos = gl.getAttribLocation(program, "vPos");
+    var vPos = gl.getAttribLocation(currentProgram, "vPos");
     gl.vertexAttribPointer(vPos, pos[0].length, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPos);
     // vertex colors
     gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(col), gl.STATIC_DRAW);
-    var vCol = gl.getAttribLocation(program, "vCol");
+    var vCol = gl.getAttribLocation(currentProgram, "vCol");
     gl.vertexAttribPointer(vCol, col[0].length, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vCol);
     // uniform variables for rotation and twist
-    thetaLocation = gl.getUniformLocation(program, "theta");
-    twistLocation = gl.getUniformLocation(program, "twist");
+    thetaLocation = gl.getUniformLocation(currentProgram, "theta");
+    twistLocation = gl.getUniformLocation(currentProgram, "twist");
 }
 
 /* render a frames recursively */
@@ -91,7 +85,9 @@ function render() {
 /* start the application */
 window.onload = function init()
 {
-    asyncLoadShaders("assignment01", initWebGL);
+    
+    asyncLoadShaders("assignment01", shaders, initWebGL);
+    currentProgram = programs[0];
     prepareVertexData();
     render();
 };
