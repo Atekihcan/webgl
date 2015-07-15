@@ -1,7 +1,7 @@
 "use strict";
 
 /* global variables */
-var gl, currentProgram, program = [];
+var gl, currentProgram, programs = [];
 var posBuf, colBuf;
 var pos = [], col = [], vertices = [];
 var numDivision = 4;
@@ -85,7 +85,6 @@ function render() {
 /* start the application */
 window.onload = function init()
 {
-    
     asyncLoadShaders("assignment01", shaders, initWebGL);
     currentProgram = programs[0];
     prepareVertexData();
