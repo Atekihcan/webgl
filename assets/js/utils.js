@@ -1,5 +1,6 @@
-var vertShaderPath, fragShaderPath;
-
+/***************************************************
+ *         shader/program utility functions        *
+ ***************************************************/
 /* function for getting shader code from remote source */
 function loadFileAJAX(name) {
     var xhr = new XMLHttpRequest(),
@@ -12,11 +13,7 @@ function loadFileAJAX(name) {
 /* function for getting compiled shader */
 function getShader(gl, type, shaderSource) {
     if (shaderSource == null) {
-        if (type == gl.VERTEX_SHADER) {
-            alert("Unable to load vertex shader from " + vertShaderPath);
-        } else {
-            alert("Unable to load fragment shader from " + fragShaderPath);
-        }
+        alert("Not able to load " + type);
         return null;
     }
     var shader = gl.createShader(type);
@@ -67,4 +64,16 @@ function asyncLoadShaders(appName, shaderArray, initWebGL) {
             initWebGL(results);
         }
     });
+}
+
+/***************************************************
+ *              other utility functions            *
+ ***************************************************/
+/* create n-sided polygon */
+function createPolygon(radius, numPoints) {
+    var i, nVert = [];
+    for (i = 0; i < numPoints; i++) {
+            nVert.push([radius * Math.sin(i * 2 * Math.PI / numPoints), radius * Math.cos(i * 2 * Math.PI / numPoints)]);
+    }
+    return nVert;
 }

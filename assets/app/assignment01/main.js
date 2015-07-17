@@ -1,23 +1,22 @@
 "use strict";
 
 /* global variables */
-var gl, currentProgram, programs = [];
-var posBuf, colBuf;
-var pos = [], col = [], vertices = [];
+var canvas, gl;
+var currentProgram, programs = [];
+var posBuf, colBuf, pos = [], col = [], vertices = [];
 var numDivision = 4;
 var polygonSides = 3;
-var stopRender = false;
 var drawWireFrame = true;
 var theta = Math.PI, twist = 1;
 var thetaLocation, twistLocation;
-var shaders = ["shader.vert", "shader.frag"]
+var shaders = ["shader.vert", "shader.frag"];
 
 /***************************************************
- *              WebGL context functions            *
+ *                  WebGL functions                *
  ***************************************************/
 /* initialize WebGL context */
 function initWebGL(shaderSources) {
-    var canvas = document.getElementById("gl-canvas");
+    canvas = document.getElementById("gl-canvas");
 
     gl = WebGLUtils.setupWebGL( canvas );
     if (!gl) {
@@ -47,27 +46,29 @@ function prepareVertexData() {
     }
 
     // load data into GPU and associate shader variables with vertex data
-    // vertex positions
-    gl.useProgram(currentProgram);
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(pos), gl.STATIC_DRAW);
-    var vPos = gl.getAttribLocation(currentProgram, "vPos");
-    gl.vertexAttribPointer(vPos, pos[0].length, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vPos);
-    // vertex colors
-    gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(col), gl.STATIC_DRAW);
-    var vCol = gl.getAttribLocation(currentProgram, "vCol");
-    gl.vertexAttribPointer(vCol, col[0].length, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vCol);
-    // uniform variables for rotation and twist
-    thetaLocation = gl.getUniformLocation(currentProgram, "theta");
-    twistLocation = gl.getUniformLocation(currentProgram, "twist");
+    if (currentProgram != null) {
+        // vertex positions
+        gl.useProgram(currentProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(pos), gl.STATIC_DRAW);
+        var vPos = gl.getAttribLocation(currentProgram, "vPos");
+        gl.vertexAttribPointer(vPos, pos[0].length, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(vPos);
+        // vertex colors
+        gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(col), gl.STATIC_DRAW);
+        var vCol = gl.getAttribLocation(currentProgram, "vCol");
+        gl.vertexAttribPointer(vCol, col[0].length, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(vCol);
+        // uniform variables for rotation and twist
+        thetaLocation = gl.getUniformLocation(currentProgram, "theta");
+        twistLocation = gl.getUniformLocation(currentProgram, "twist");
+    }
 }
 
-/* render a frames recursively */
+/* render frames recursively */
 function render() {
-    if (!stopRender) {
+    if (currentProgram != null) {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.uniform1f(thetaLocation, theta);
         gl.uniform1i(twistLocation, twist);
@@ -90,6 +91,13 @@ window.onload = function init()
     prepareVertexData();
     render();
 };
+
+/* reinitialize vertex data */
+function reInit() {
+    pos = [];
+    col = [];
+    prepareVertexData();
+}
 
 /***************************************************
  *              utility functions                  *
@@ -120,22 +128,6 @@ function divideTriangle(a, b, c, iterCount)
     } else {
         triangle(a, b, c);
     }
-}
-
-/* create n-sided polygon */
-function createPolygon(radius, numPoints) {
-    var i, nVert = [];
-    for (i = 0; i < numPoints; i++) {
-            nVert.push([radius * Math.sin(i * 2 * Math.PI / numPoints), radius * Math.cos(i * 2 * Math.PI / numPoints)]);
-    }
-    return nVert;
-}
-
-/* reinitialize vertex data */
-function reInit() {
-    pos = [];
-    col = [];
-    prepareVertexData();
 }
 
 /***************************************************

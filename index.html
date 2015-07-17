@@ -4,8 +4,12 @@ date:   2015-07-03 18:51
 ---
 
 <div class="row">
+    <header class="page-header">
+        <h2>Experiments</h3>
+    </header>
     <div class="col-xs-12 col-sm-12 col-md-offset-1 col-md-10 col-lg-offset-2 col-lg-8">
     {% for post in site.posts reversed %}
+    {% if post.coursera == nil %}
         <div class="col-md-3 col-sm-3 col-xs-6 text-center">
             <b><a href="{{ post.url | prepend: site.baseurl }}">{{ post.subtitle }}</a></b><br/>
             <small>
@@ -16,6 +20,29 @@ date:   2015-07-03 18:51
                 <i class="fa fa-calendar"></i>
             </small>
         </div>
+    {% endif %}
+    {% endfor %}
+    </div>
+</div>
+
+<div class="row" style="padding-top: 100px;">
+    <header class="page-header">
+        <h2>Coursera</h3>
+    </header>
+    <div class="col-xs-12 col-sm-12 col-md-offset-1 col-md-10 col-lg-offset-2 col-lg-8">
+    {% for post in site.posts %}
+    {% if post.coursera %}
+        <div class="col-md-3 col-sm-3 col-xs-6 text-center">
+            <b><a href="{{ post.url | prepend: site.baseurl }}">{{ post.subtitle }}</a></b><br/>
+            <small>
+                <i class="fa fa-calendar"></i>
+                <time>
+                    &nbsp;{{ post.date | date:'%d %B, %Y'}}
+                </time>
+                <i class="fa fa-calendar"></i>
+            </small>
+        </div>
+    {% endif %}
     {% endfor %}
     </div>
 </div>

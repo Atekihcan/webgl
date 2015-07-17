@@ -1,14 +1,15 @@
 "use strict";
 
 /* global variables */
-var gl;
+var gl, currentProgram, programs = [];
 var points = [];
-var vShaderSource, fShaderSource;
+var shaders = ["shader.vert", "shader.frag"]
 
-/* function for initializing WebGL context */
-function initWebGL(vString, fString) {
-    vShaderSource = vString;
-    fShaderSource = fString;
+/***************************************************
+ *              WebGL context functions            *
+ ***************************************************/
+/* initialize WebGL context */
+function initWebGL(shaderSources) {
     var canvas = document.getElementById("gl-canvas");
 
     gl = WebGLUtils.setupWebGL( canvas );
@@ -20,37 +21,34 @@ function initWebGL(vString, fString) {
     //  Configure WebGL context
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
+
+    // compile shaders and get the program object
+    programs.push(getProgram(gl, shaderSources[0], shaderSources[1]));
 };
+
+/* declare vertex data and upload it to GPU */
+function prepareVertexData() {
+    // declare vertex data
+    var vertices = [vec2(-1, -1), vec2(0, 1), vec2(1, -1)];
+    divideTriangle(vertices[0], vertices[1], vertices[2], 5);
+
+    // load data into GPU and associate shader variables with vertex data
+    // vertex positions
+    gl.useProgram(currentProgram);
+    var posBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+    var vPos = gl.getAttribLocation(currentProgram, "vPos");
+    gl.vertexAttribPointer(vPos, points[0].length, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPos);
+}
 
 // initialize application
 window.onload = function init()
 {
-    asyncLoadShaders("triangle", initWebGL);
-
-    // declare vertex data
-    //var vertices = new Float32Array([-1, -1, 0, 1, 1, -1]);
-    var vertices = [vec2(-1, -1), vec2(0, 1), vec2(1, -1)];
-    divideTriangle(vertices[0], vertices[1], vertices[2], 5);
-
-    // compile shaders and get the program object
-    var program = getProgram(gl, vShaderSource, fShaderSource);
-    if (program === null) {
-        alert("[ERROR] Program object is null. Exiting...");
-        return;
-    }
-    gl.useProgram(program);
-
-    // load the data into the GPU
-    var bufferId = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
-
-    // associate shader variables with vertex data
-    var vPosition = gl.getAttribLocation(program, "vPosition");
-    gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vPosition);
-
-    // render the frame
+    asyncLoadShaders("triangle", shaders, initWebGL);
+    currentProgram = programs[0];
+    prepareVertexData();
     render();
 };
 
