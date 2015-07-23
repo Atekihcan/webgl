@@ -30,7 +30,7 @@ date:   2015-07-03 18:51
         <h2>Coursera</h3>
     </header>
     <div class="col-xs-12 col-sm-12 col-md-offset-1 col-md-10 col-lg-offset-2 col-lg-8">
-    {% for post in site.posts %}
+    {% for post in site.posts reversed %}
     {% if post.coursera %}
         <div class="col-md-3 col-sm-3 col-xs-6 text-center">
             <b><a href="{{ post.url | prepend: site.baseurl }}">{{ post.subtitle }}</a></b><br/>

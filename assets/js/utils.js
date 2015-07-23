@@ -2,10 +2,15 @@
  *         shader/program utility functions        *
  ***************************************************/
 /* function for getting shader code from remote source */
-function loadFileAJAX(name) {
+function loadFileAJAX(name, cache) {
     var xhr = new XMLHttpRequest(),
         okStatus = document.location.protocol === "file:" ? 0 : 200;
-    xhr.open('GET', name, false);
+    if (cache) {
+        xhr.open('GET', name, false);
+    } else {
+        var time_stamp = Date.now();
+        xhr.open('GET', name + "?t=" + time_stamp, false);
+    }
     xhr.send(null);
     return xhr.status == okStatus ? xhr.responseText : null;
 };
@@ -44,17 +49,17 @@ function getProgram(gl, vertShaderSource, fragShaderSource) {
 };
 
 /* create ajax file loading callbacks */
-function createTask(path) {
-    return function(callback) { callback(null, loadFileAJAX(path)); };
+function createTask(path, cache) {
+    return function(callback) { callback(null, loadFileAJAX(path, cache)); };
 }
 
 /* asynchronously load shader code in parallel and then initialize WebGL */
-function asyncLoadShaders(appName, shaderArray, initWebGL) {
+function asyncLoadShaders(appName, shaderArray, initWebGL, cache = true) {
     var taskList = [];
     // populate taskList with shader loading callbacks
     for (var i = 0; i < shaderArray.length; i++) {
         path = "/webgl/assets/app/" + appName + "/" + shaderArray[i];
-        taskList.push(createTask(path));
+        taskList.push(createTask(path, cache));
     }
     // asynchronously load shaders
     async.parallel(taskList, function(err, results) {
