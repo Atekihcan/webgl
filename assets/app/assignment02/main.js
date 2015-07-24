@@ -6,10 +6,13 @@ var currentProgram, programs = [];
 var posBuf, colBuf, pos = [], col = [];
 var index = 0;
 var shaders = ["shader.vert", "shader.frag"];
+var stopRender = false;
 
+var index       = -2;
 var isMouseDown = false;
-var bSize = 0.01;
-var bColor = vec4([1.0, 0.0, 0.0, 1.0]);
+var isNewShape  = false;
+var bSize       = 0.01;
+var bColor      = vec4([1.0, 0.0, 0.0, 1.0]);
 
 /***************************************************
  *                  WebGL functions                *
@@ -35,6 +38,8 @@ function initWebGL(shaderSources) {
     gl.bufferData(gl.ARRAY_BUFFER, canvas.width * canvas.height * 4 * sizeof['vec4'], gl.STATIC_DRAW);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     // compile shaders and get the program object
     programs.push(getProgram(gl, shaderSources[0], shaderSources[1]));
@@ -58,7 +63,7 @@ function prepareVertexData() {
 
 /* render frames recursively */
 function render() {
-    if (currentProgram != null && pos.length > 0) {
+    if (!stopRender && currentProgram != null && pos.length > 0) {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, (pos.length - 1) * 4);
     }
@@ -77,7 +82,7 @@ window.onload = function init() {
  *                    geometry utils               *
  ***************************************************/
 /* calculate thick line coordinates from the mouse position */
-function makeThickLine() {
+function makeThickLine(transparent = false) {
     if (pos.length < 2) {
         return;
     }
@@ -94,33 +99,31 @@ function makeThickLine() {
         d = [pos[pos.length - 1][0] + tx, pos[pos.length - 1][1] + ty];
 
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec2'] * (index - 1), flatten([a, b, c, d]));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec2'] * index, flatten([a, b, c, d]));
     gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * (index - 1), flatten([bColor, bColor, bColor, bColor]));
+    if (transparent) {
+        var bTrans = [0.0, 0.0, 0.0, 0.0, 0.0];
+        gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * index, flatten([bTrans, bTrans, bTrans, bTrans]));
+    } else {
+        gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * index, flatten([bColor, bColor, bColor, bColor]));
+    }
 }
 
 /***************************************************
  *                    UI handlers                  *
  ***************************************************/
-/* set fragment shader */
-function getMouseClick(event) {
+/* mouse down event handler */
+function getMouseDown(event) {
+    isMouseDown = true;
+    stopRender = false;
     var rect = canvas.getBoundingClientRect();
     var x = event.clientX - rect.left,
         y = event.clientY - rect.top;
     var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec2'] * index, flatten(clip));
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
-}
-
-/* mouse down event handler */
-function getMouseDown(event) {
-    isMouseDown = true;
-    var rect = canvas.getBoundingClientRect();
-    var x = event.clientX - rect.left,
-        y = event.clientY - rect.top;
-    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+    pos.push(clip);
+    index++;
+    makeThickLine(true);
     document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
 }
 
@@ -131,10 +134,10 @@ function getMouseMove(event) {
         var x = event.clientX - rect.left,
             y = event.clientY - rect.top;
         var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
-        
+
         pos.push(clip);
-        makeThickLine();
         index++;
+        makeThickLine();
         
         document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
     }
@@ -147,9 +150,19 @@ function getMouseUp(event) {
     var x = event.clientX - rect.left,
         y = event.clientY - rect.top;
     var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
-    //pos.push(clip);
-    //makeThickLine()
+
+    pos.push(clip);
+    index++;
+    makeThickLine(true);
     document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+}
+
+/* clear canvas */
+function resetCanvas() {
+    pos = [];
+    index = -2;
+    stopRender = true;
+        gl.clear(gl.COLOR_BUFFER_BIT);
 }
 
 /* set brush color */
