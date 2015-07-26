@@ -11,8 +11,10 @@ var stopRender = false;
 var index       = -2;
 var isMouseDown = false;
 var isNewShape  = false;
-var bSize       = 0.01;
+var bSize       = 1;
+var bMode       = true;
 var bColor      = vec4([1.0, 0.0, 0.0, 1.0]);
+var bgColor     = vec4([1.0, 1.0, 1.0, 1.0]);
 
 /***************************************************
  *                  WebGL functions                *
@@ -23,8 +25,11 @@ function initWebGL(shaderSources) {
     canvas.addEventListener("mousedown", getMouseDown, false);
     canvas.addEventListener("mousemove", getMouseMove, false);
     canvas.addEventListener("mouseup", getMouseUp, false);
+    canvas.addEventListener("touchstart", getTouchStart, false);
+    canvas.addEventListener("touchmove", getTouchMove, false);
+    canvas.addEventListener("touchend", getTouchEnd, false);
 
-    gl = WebGLUtils.setupWebGL( canvas );
+    gl = WebGLUtils.setupWebGL(canvas, {preserveDrawingBuffer: true});
     if (!gl) {
         alert("[ERROR] WebGL isn't available");
         return;
@@ -82,7 +87,8 @@ window.onload = function init() {
  *                    geometry utils               *
  ***************************************************/
 /* calculate thick line coordinates from the mouse position */
-function makeThickLine(transparent = false) {
+function makeThickLine(transparent) {
+    setDefault(transparent, false);
     if (pos.length < 2) {
         return;
     }
@@ -91,8 +97,8 @@ function makeThickLine(transparent = false) {
     var dy = pos[pos.length - 1][1] - pos[pos.length - 2][1];
 
     var normal = normalize([-dy, dx]);
-    var tx = bSize * normal[0],
-        ty = bSize * normal[1];
+    var tx = bSize * normal[0] / 200.0,
+        ty = bSize * normal[1] / 200.0;
     var a = [pos[pos.length - 2][0] - tx, pos[pos.length - 2][1] - ty], 
         b = [pos[pos.length - 2][0] + tx, pos[pos.length - 2][1] + ty], 
         c = [pos[pos.length - 1][0] - tx, pos[pos.length - 1][1] - ty], 
@@ -105,7 +111,11 @@ function makeThickLine(transparent = false) {
         var bTrans = [0.0, 0.0, 0.0, 0.0, 0.0];
         gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * index, flatten([bTrans, bTrans, bTrans, bTrans]));
     } else {
-        gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * index, flatten([bColor, bColor, bColor, bColor]));
+        if (bMode) {
+            gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * index, flatten([bColor, bColor, bColor, bColor]));
+        } else {
+            gl.bufferSubData(gl.ARRAY_BUFFER, 4 * sizeof['vec4'] * index, flatten([bgColor, bgColor, bgColor, bgColor]));
+        }
     }
 }
 
@@ -157,12 +167,70 @@ function getMouseUp(event) {
     document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
 }
 
+/* touch start event handler */
+function getTouchStart(event) {
+    stopRender = false;
+    var rect = canvas.getBoundingClientRect();
+    var x = event.touches[0].pageX - rect.left,
+        y = event.touches[0].pageY - rect.top;
+    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+    
+    pos.push(clip);
+    index++;
+    makeThickLine(true);
+    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    event.preventDefault();
+}
+
+/* touch move event handler */
+function getTouchMove(event) {
+        var rect = canvas.getBoundingClientRect();
+        var x = event.touches[0].pageX - rect.left,
+            y = event.touches[0].pageY - rect.top;
+        var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+
+        pos.push(clip);
+        index++;
+        makeThickLine();
+        
+        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    event.preventDefault();
+}
+
+/* touch end event handler */
+function getTouchEnd(event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.changedTouches[0].pageX - rect.left,
+        y = event.changedTouches[0].pageY - rect.top;
+    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+
+    pos.push(clip);
+    index++;
+    makeThickLine(true);
+    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    event.preventDefault();
+}
+
 /* clear canvas */
 function resetCanvas() {
     pos = [];
     index = -2;
     stopRender = true;
-        gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+/* save canvas as image */
+function saveImage() {
+    var dataURL = canvas.toDataURL('image/png');
+    window.open(dataURL, "_blank");
+}
+
+/* set canvas color */
+function setBGColor(value) {
+    var rgb = hexToRGB(value);
+    bgColor = vec4([rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0]);
+    gl.clearColor(rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 }
 
 /* set brush color */
@@ -172,8 +240,17 @@ function setColor(value) {
 }
 
 /* set brush size */
-function setThickness(value) {
-    bSize = value / 200.0;
+function setSize(value) {
+    bSize = value;
+}
+
+/* set brush mode */
+function setMode(value) {
+    if (value == "Paint") {
+        bMode = true;
+    } else {
+        bMode = false;
+    }
 }
 
 /* convert hex color string to normalized rgb */
@@ -184,4 +261,14 @@ function hexToRGB(hex) {
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
     } : null;
+}
+
+/* mouse move event handler */
+function tgetTouchMove(event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.touches[0].pageX - rect.left,
+        y = event.touches[0].pageY - rect.top;
+    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    //document.getElementById("info").innerHTML = x + ", " + y;
 }

@@ -54,7 +54,8 @@ function createTask(path, cache) {
 }
 
 /* asynchronously load shader code in parallel and then initialize WebGL */
-function asyncLoadShaders(appName, shaderArray, initWebGL, cache = true) {
+function asyncLoadShaders(appName, shaderArray, initWebGL, cache) {
+    setDefault(cache, true);
     var taskList = [];
     // populate taskList with shader loading callbacks
     for (var i = 0; i < shaderArray.length; i++) {
@@ -82,3 +83,7 @@ function createPolygon(radius, numPoints) {
     }
     return nVert;
 }
+
+function setDefault(param, value) {
+    param = typeof param !== 'undefined' ? param : value;
+ }
