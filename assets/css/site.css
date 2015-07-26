@@ -24,6 +24,11 @@ canvas{
     border-radius: 5px;
 }
 
+button {
+   width: 80px;
+   border: 1px solid #333;
+}
+
 select {
    width: 80px;
 }
@@ -34,6 +39,8 @@ input[type="number"] {
 
 input[type="color"] {
    width: 80px;
+   border: none;
+   padding: 0px;
 }
 
 /* page */
