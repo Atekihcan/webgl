@@ -14,6 +14,7 @@ var isNewShape  = false;
 var bSize       = 1;
 var bMode       = true;
 var bColor      = vec4([1.0, 0.0, 0.0, 1.0]);
+var bColorStr   = "#ff0000";
 var bgColor     = vec4([1.0, 1.0, 1.0, 1.0]);
 
 /***************************************************
@@ -75,12 +76,45 @@ function render() {
     window.requestAnimFrame(render);
 }
 
+/* setup the second canvas for drawing cursor */
+function setupCursor() {
+    var cursorCanvas = document.getElementById("cur-canvas");
+    var ctx = cursorCanvas.getContext("2d");
+    cursorCanvas.addEventListener("mousemove", handleMouseMove, false);
+
+    function handleMouseMove(e){
+        e.preventDefault();
+        e.stopPropagation();
+        var rect = cursorCanvas.getBoundingClientRect();
+        var x = e.clientX - rect.left,
+            y = e.clientY - rect.top;
+
+        ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+        ctx.beginPath();
+        if (bMode) {
+            ctx.arc(x, y, bSize, 0, 2 * Math.PI, false);
+            ctx.fillStyle = bColorStr;
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#003300';
+        } else {
+            ctx.moveTo(x - 2 * bSize, y - 2 * bSize);
+            ctx.lineTo(x - 2 * bSize, y + 2 * bSize);
+            ctx.lineTo(x + 2 * bSize, y + 2 * bSize);
+            ctx.lineTo(x + 2 * bSize, y - 2 * bSize);
+            ctx.lineTo(x - 2 * bSize, y - 2 * bSize);
+        }
+        ctx.stroke();
+    }
+}
+
 /* start the application */
 window.onload = function init() {
     asyncLoadShaders("assignment02", shaders, initWebGL);
     currentProgram = programs[0];
     prepareVertexData();
     render();
+    //setupCursor();
 };
 
 /***************************************************
@@ -92,16 +126,16 @@ function makeThickLine(transparent) {
     if (pos.length < 2) {
         return;
     }
-    
+
     var dx = pos[pos.length - 1][0] - pos[pos.length - 2][0];
     var dy = pos[pos.length - 1][1] - pos[pos.length - 2][1];
 
     var normal = normalize([-dy, dx]);
     var tx = bSize * normal[0] / 200.0,
         ty = bSize * normal[1] / 200.0;
-    var a = [pos[pos.length - 2][0] - tx, pos[pos.length - 2][1] - ty], 
-        b = [pos[pos.length - 2][0] + tx, pos[pos.length - 2][1] + ty], 
-        c = [pos[pos.length - 1][0] - tx, pos[pos.length - 1][1] - ty], 
+    var a = [pos[pos.length - 2][0] - tx, pos[pos.length - 2][1] - ty],
+        b = [pos[pos.length - 2][0] + tx, pos[pos.length - 2][1] + ty],
+        c = [pos[pos.length - 1][0] - tx, pos[pos.length - 1][1] - ty],
         d = [pos[pos.length - 1][0] + tx, pos[pos.length - 1][1] + ty];
 
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
@@ -130,27 +164,26 @@ function getMouseDown(event) {
     var x = event.clientX - rect.left,
         y = event.clientY - rect.top;
     var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
-    
+
     pos.push(clip);
     index++;
     makeThickLine(true);
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
 }
 
 /* mouse move event handler */
 function getMouseMove(event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left,
+        y = event.clientY - rect.top;
     if (isMouseDown) {
-        var rect = canvas.getBoundingClientRect();
-        var x = event.clientX - rect.left,
-            y = event.clientY - rect.top;
         var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
 
         pos.push(clip);
         index++;
         makeThickLine();
-        
-        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
     }
+    document.getElementById("info").innerHTML = Math.round(x) + ", " + Math.round(y);
 }
 
 /* mouse up event handler */
@@ -164,7 +197,7 @@ function getMouseUp(event) {
     pos.push(clip);
     index++;
     makeThickLine(true);
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
 }
 
 /* touch start event handler */
@@ -174,26 +207,24 @@ function getTouchStart(event) {
     var x = event.touches[0].pageX - rect.left,
         y = event.touches[0].pageY - rect.top;
     var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
-    
+
     pos.push(clip);
     index++;
     makeThickLine(true);
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
-    event.preventDefault();
 }
 
 /* touch move event handler */
 function getTouchMove(event) {
-        var rect = canvas.getBoundingClientRect();
-        var x = event.touches[0].pageX - rect.left,
-            y = event.touches[0].pageY - rect.top;
-        var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+    var rect = canvas.getBoundingClientRect();
+    var x = event.touches[0].pageX - rect.left,
+        y = event.touches[0].pageY - rect.top;
+    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
 
-        pos.push(clip);
-        index++;
-        makeThickLine();
-        
-        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    pos.push(clip);
+    index++;
+    makeThickLine();
+
+    document.getElementById("info").innerHTML = Math.round(x) + ", " + Math.round(y);
     event.preventDefault();
 }
 
@@ -207,8 +238,6 @@ function getTouchEnd(event) {
     pos.push(clip);
     index++;
     makeThickLine(true);
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
-    event.preventDefault();
 }
 
 /* clear canvas */
@@ -235,6 +264,7 @@ function setBGColor(value) {
 
 /* set brush color */
 function setColor(value) {
+    bColorStr = value;
     var rgb = hexToRGB(value);
     bColor = vec4([rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0]);
 }
@@ -251,24 +281,4 @@ function setMode(value) {
     } else {
         bMode = false;
     }
-}
-
-/* convert hex color string to normalized rgb */
-function hexToRGB(hex) {
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-
-/* mouse move event handler */
-function tgetTouchMove(event) {
-    var rect = canvas.getBoundingClientRect();
-    var x = event.touches[0].pageX - rect.left,
-        y = event.touches[0].pageY - rect.top;
-    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
-    //document.getElementById("info").innerHTML = x + ", " + y;
 }
