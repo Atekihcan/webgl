@@ -26,7 +26,12 @@ canvas{
 
 button {
    width: 80px;
-   border: 1px solid #333;
+   background-color: #eee;
+   border: 1px solid #111;
+}
+
+button:hover {
+   background-color: #bbb;
 }
 
 select {

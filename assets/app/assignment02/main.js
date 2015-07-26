@@ -118,7 +118,7 @@ window.onload = function init() {
 };
 
 /***************************************************
- *                    geometry utils               *
+ *                geometry utils                   *
  ***************************************************/
 /* calculate thick line coordinates from the mouse position */
 function makeThickLine(transparent) {
@@ -127,8 +127,8 @@ function makeThickLine(transparent) {
         return;
     }
 
-    var dx = pos[pos.length - 1][0] - pos[pos.length - 2][0];
-    var dy = pos[pos.length - 1][1] - pos[pos.length - 2][1];
+    var dx = pos[pos.length - 1][0] - pos[pos.length - 2][0], 
+        dy = pos[pos.length - 1][1] - pos[pos.length - 2][1];
 
     var normal = normalize([-dy, dx]);
     var tx = bSize * normal[0] / 200.0,
@@ -282,3 +282,11 @@ function setMode(value) {
         bMode = false;
     }
 }
+
+/* populate brush size selector */
+$(function(){
+    var $select = $("#brushSize");
+    for (var i = 1; i <= 10; i++){
+        $select.append($('<option></option>').val(i).html("Size " + i))
+    }
+});

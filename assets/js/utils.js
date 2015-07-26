@@ -94,6 +94,11 @@ function hexToRGB(hex) {
     } : null;
 }
 
+/* calculate distance between two points */
+function dist(a, b) {
+    return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
+}
+
 /* set default value for an undefined parameter */
 function setDefault(param, value) {
     param = typeof param !== 'undefined' ? param : value;
