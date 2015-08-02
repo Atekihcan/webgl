@@ -36,7 +36,7 @@ function initWebGL(shaderSources) {
 /* declare vertex data and upload it to GPU */
 function prepareVertexData() {
     // declare vertex data
-    vertices = createPolygon(0.8, polygonSides);
+    vertices = createPolygon([0.0, 0.0], 0.8, polygonSides);
     if (vertices.length == 3) {
         divideTriangle(vertices[0], vertices[1], vertices[2], numDivision);
     } else {

@@ -595,28 +595,6 @@ function mix( u, v, s )
 }
 
 //----------------------------------------------------------------------------
-//
-// Vector and Matrix functions
-//
-
-function scale( s, u )
-{
-    if ( !Array.isArray(u) ) {
-        throw "scale: second parameter " + u + " is not a vector";
-    }
-
-    result = [];
-    for ( var i = 0; i < u.length; ++i ) {
-        result.push( s * u[i] );
-    }
-    
-    return result;
-}
-
-//----------------------------------------------------------------------------
-//
-//
-//
 
 function flatten( v )
 {

@@ -9,6 +9,10 @@ body {
     }
 }
 
+h3 {
+    margin: 5px 0;
+}
+
 code {
     font-family: 'Courier New', Courier, monospace;
 }
@@ -25,7 +29,7 @@ canvas{
 }
 
 button {
-   width: 80px;
+   min-width: 100px;
    background-color: #eee;
    border: 1px solid #111;
 }
@@ -35,24 +39,41 @@ button:hover {
 }
 
 select {
-   width: 80px;
+   width: 100px;
 }
 
 input[type="number"] {
-   width: 80px;
+   width: 100px;
 }
 
 input[type="color"] {
-   width: 80px;
+   width: 100px;
    border: none;
    padding: 0px;
 }
 
+@media(max-width: 600px) {
+    button {
+       min-width: 65px;
+    }
+
+    select {
+       width: 65px;
+    }
+
+    input[type="number"] {
+       width: 65px;
+    }
+
+    input[type="color"] {
+       width: 30px;
+    }
+}
+
 /* page */
 .page-header{
-    margin: 10px 0;
+    margin: 2px 0px;
     text-align: center;
-    padding-bottom: 10px;
     font-family: 'Verdana', Helvetica, sans-serif;
 }
 

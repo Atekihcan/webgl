@@ -73,15 +73,57 @@ function asyncLoadShaders(appName, shaderArray, initWebGL, cache) {
 }
 
 /***************************************************
- *              other utility functions            *
+ *           geometry utility functions            *
  ***************************************************/
 /* create n-sided polygon */
-function createPolygon(radius, numPoints) {
+function createPolygon(center, radius, numPoints, withZ) {
+    setDefault(withZ, false);
     var i, nVert = [];
     for (i = 0; i < numPoints; i++) {
-            nVert.push([radius * Math.sin(i * 2 * Math.PI / numPoints), radius * Math.cos(i * 2 * Math.PI / numPoints)]);
+        if (withZ) {
+            nVert.push([center[0] + radius * Math.sin(i * 2 * Math.PI / numPoints), center[1] + radius * Math.cos(i * 2 * Math.PI / numPoints), 1.0]);
+        } else {
+            nVert.push([center[0] + radius * Math.sin(i * 2 * Math.PI / numPoints), center[1] + radius * Math.cos(i * 2 * Math.PI / numPoints)]);
+        }
     }
     return nVert;
+}
+
+/* calculate distance between two points */
+function dist(a, b) {
+    if (a.length != b.length) {
+        throw "dist(): trying to calculate distance of points of different dimensions";
+    }
+    
+    if (a.length == 2) {
+        return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
+    } else if (a.length == 3) {
+        return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
+    } else {
+        throw "dist(): points of length " + a.length + " is not yet supported";
+    }
+}
+
+
+/* return movement direction */
+function move_direction(src, dst) {
+    if (src.length != dst.length) {
+        throw "move_direction(): trying to calculate distance of points of different dimensions";
+    }
+    
+    if (src.length == 2) {
+        return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
+    } else {
+        throw "move_direction(): points of length " + a.length + " is not yet supported";
+    }
+}
+
+/***************************************************
+ *              other utility functions            *
+ ***************************************************/
+/* return sign of a number */
+function sign(num) {
+    return num ? num < 0 ? -1 : 1 : 1;
 }
 
 /* convert hex color string to normalized rgb */
@@ -94,12 +136,21 @@ function hexToRGB(hex) {
     } : null;
 }
 
-/* calculate distance between two points */
-function dist(a, b) {
-    return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
-}
-
 /* set default value for an undefined parameter */
 function setDefault(param, value) {
     param = typeof param !== 'undefined' ? param : value;
- }
+}
+
+/* show/hide settings panel */
+function toggleControls() {
+    title = document.getElementById("controlPanelTitle");
+    control = document.getElementById("controlPanel");
+    if (title.text == "[-] Hide Settings") {
+        title.text = "[+] Show Settings";
+        control.style.display = "none";
+    }
+    else {
+        title.text = "[-] Hide Settings";
+        control.style.display = "";
+    }
+}
