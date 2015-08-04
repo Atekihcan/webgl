@@ -104,7 +104,6 @@ function dist(a, b) {
     }
 }
 
-
 /* return movement direction */
 function move_direction(src, dst) {
     if (src.length != dst.length) {
@@ -145,12 +144,12 @@ function setDefault(param, value) {
 function toggleControls() {
     title = document.getElementById("controlPanelTitle");
     control = document.getElementById("controlPanel");
-    if (title.text == "[-] Hide Settings") {
-        title.text = "[+] Show Settings";
+    if (title.innerHTML == "[-] Hide Settings") {
+        title.innerHTML = "[+] Show Settings";
         control.style.display = "none";
     }
     else {
-        title.text = "[-] Hide Settings";
+        title.innerHTML = "[-] Hide Settings";
         control.style.display = "";
     }
 }
