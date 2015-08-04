@@ -125,7 +125,7 @@ function sign(num) {
     return num ? num < 0 ? -1 : 1 : 1;
 }
 
-/* convert hex color string to normalized rgb */
+/* convert hex color string to rgb */
 function hexToRGB(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -135,9 +135,39 @@ function hexToRGB(hex) {
     } : null;
 }
 
+/* convert normalized rgb to hex color string */
+function nrgbToHex(rgb) {
+    r = parseInt(rgb[0] * 255);
+    g = parseInt(rgb[1] * 255);
+    b = parseInt(rgb[2] * 255);
+    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
+/* convert rgb to hex color string */
+function rgbToHex(r, g, b) {
+    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
+function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+}
+
+/* round num to n decimal places */
+function roundDown(num, n) {
+    n = setDefault(n, 2);
+    var multiplier = Math.pow(10, n);    
+    return Math.round(num * multiplier) / multiplier;
+}
+
 /* set default value for an undefined parameter */
 function setDefault(param, value) {
-    param = typeof param !== 'undefined' ? param : value;
+    //param = typeof param !== 'undefined' ? param : value;
+    if (typeof param == 'undefined') {
+        return value;
+    } else {
+        return param;
+    }
 }
 
 /* show/hide settings panel */
