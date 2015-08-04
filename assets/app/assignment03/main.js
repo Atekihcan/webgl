@@ -85,6 +85,7 @@ function initWebGL(shaderSources) {
         gl.useProgram(program);
     }
 }
+
 /* load global uniforms */
 function loadGlobalUniforms() {
     gl.uniform1i(gl.getUniformLocation(program, "u_pointLightOn"), pointLightOn.checked);
@@ -369,7 +370,8 @@ function mouseToClip(e) {
     );
 }
 
-/* mouse down event handler */function getMouseDown(event) {
+/* mouse down event handler */
+function getMouseDown(event) {
     isMouseDown = true;
     stopRender = false;
     var clip = mouseToClip(event);
@@ -405,31 +407,28 @@ function getMouseUp(event) {
 }
 
 /* set shape */
-function getMouseDown(event) {
-    isMouseDown = true;
-    stopRender = false;
-    var clip = mouseToClip(event);
-    if (drawNew) {
-        objectsToDraw.push(new Geometry(currentShape, currentColor, [clip[0], clip[1], 0.0], SHAPES[currentShape][1] || shiftDown));
-        // add new object to shape select list
-        var option = document.createElement("option");
-        option.text = "Object_" + objectsToDraw.length + "(" + SHAPES[currentShape][0] + ")";
-        option.value = objectsToDraw.length + 10;
-        var select = document.getElementById("shapeSelector");
-        select.appendChild(option);
-        currentObjectID = objectsToDraw.length - 1;
-    }
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
-}
-
-/* mouse move event handler */
-function getMouseMove(event) {
-    if (isMouseDown) {
-        var clip = mouseToClip(event);
-        if (drawNew) {
-            objectsToDraw[currentObjectID].modifyShape(clip);
-        }
-        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+function setShape(value) {
+    if (value > 3 && value < 10) {
+        drawNew = true;
+        currentShape = parseInt(value);
+        objectsToDraw[currentObjectID].wireFrame = false;
+    } else if (value >= 10) {
+        drawNew = false;
+        objectsToDraw[currentObjectID].wireFrame = false;
+        currentObjectID = value - 11;
+        uiCol.value    = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
+        uiScaleX.value = roundDown(objectsToDraw[currentObjectID].scale[0]);
+        uiScaleY.value = roundDown(objectsToDraw[currentObjectID].scale[1]);
+        uiScaleZ.value = roundDown(objectsToDraw[currentObjectID].scale[2]);
+        uiRotX.value   = roundDown(objectsToDraw[currentObjectID].rotate[0]);
+        uiRotY.value   = roundDown(objectsToDraw[currentObjectID].rotate[1]);
+        uiRotZ.value   = roundDown(objectsToDraw[currentObjectID].rotate[2]);
+        uiMoveX.value  = roundDown(objectsToDraw[currentObjectID].translate[0]);
+        uiMoveY.value  = roundDown(objectsToDraw[currentObjectID].translate[1]);
+        uiMoveZ.value  = roundDown(objectsToDraw[currentObjectID].translate[2]);
+        objectsToDraw[currentObjectID].wireFrame = true;
+    } else {
+        console.log("Drawing " + value + " is not supported");
     }
 }
 

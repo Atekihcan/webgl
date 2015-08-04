@@ -520,7 +520,7 @@ function inverse(a)
     if (!det) { 
         return null; 
     }
-    det = 1.0 / det;;
+    det = 1.0 / det;
 
     var result = mat4();
     result[0][0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
