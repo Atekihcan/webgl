@@ -22,10 +22,9 @@ var drawNew = true;
 var shapeBufs = [];
 var currentShape  = 4;
 var currentObjectID = null;
-var uiCol, 
-    uiScaleX, uiScaleY, uiScaleZ, 
-    uiRotX, uiRotY, uiRotZ, 
-    uiMoveX, uiMoveY, uiMoveZ;
+var uiShapeSelector, uiObjectCol; 
+var uiObjectPos = [], uiObjectPosVal = [];
+var uiPointLightPos = [], uiPointLightPosVal = [];
 var shiftDown = false;
 var isMouseDown = false;
 
@@ -55,6 +54,7 @@ function initWebGL(shaderSources) {
     canvas.addEventListener("mousedown", getMouseDown, false);
     canvas.addEventListener("mousemove", getMouseMove, false);
     canvas.addEventListener("mouseup", getMouseUp, false);
+    canvas.addEventListener("wheel", getMouseWheel, false);
 
     gl = WebGLUtils.setupWebGL(canvas, {preserveDrawingBuffer: true});
     if (!gl) {
@@ -159,16 +159,19 @@ window.onload = function init() {
     document.addEventListener('keyup', handleKeyUp);
     pointLightOn = document.getElementById('pointLight');
     ambientLightOn = document.getElementById('ambientLight');
-    uiCol    = document.getElementById('objColUI');
-    uiScaleX = document.getElementById('objScaleXUI');
-    uiScaleY = document.getElementById('objScaleYUI');
-    uiScaleZ = document.getElementById('objScaleZUI');
-    uiRotX   = document.getElementById('objRotXUI');
-    uiRotY   = document.getElementById('objRotYUI');
-    uiRotZ   = document.getElementById('objRotZUI');
-    uiMoveX  = document.getElementById('objMoveXUI');
-    uiMoveY  = document.getElementById('objMoveYUI');
-    uiMoveZ  = document.getElementById('objMoveZUI');
+    uiObjectCol    = document.getElementById('objColUI');
+    uiShapeSelector = document.getElementById("shapeSelector");
+    for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+            uiObjectPos.push(document.getElementById('uiObjectPos_' + i + j));
+            uiObjectPosVal.push(document.getElementById('uiObjectPosVal_' + i + j));
+        }
+    }
+    
+    for (var i = 0; i < 3; i++) {
+        uiPointLightPos.push(document.getElementById('uiPointLightPos_' + i));
+        uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
+    }
     
     //console.log(shapeBufs);
     AXES.push(new Geometry(1, [1.0, 0.0, 0.0, 1.0]));
@@ -198,7 +201,9 @@ function Geometry(shape, color, start, symmetry) {
     this.materialColor     = color;
     this.lighting          = true;
     this.symmetry          = symmetry;
+    this.fill              = true;
     this.wireFrame         = false;
+    this.selected          = false;
     this.buffer = {
         vbo: shapeBufs[this.shape],
         numVert: 0,
@@ -254,11 +259,18 @@ function Geometry(shape, color, start, symmetry) {
                 break;
             case 4:
             case 5:
-                gl.drawArrays(gl.TRIANGLES, 0, this.buffer.numVert);
-                if (this.wireFrame) {
+                if (this.fill) {
+                    gl.drawArrays(gl.TRIANGLES, 0, this.buffer.numVert);
+                }
+                if (this.wireFrame && !this.selected) {
                     for(var i = 0; i < this.buffer.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten([0.0, 0.0, 0.0, 1.0]));
+                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten([0.2, 0.7, 0.9, 1.0]));
                         gl.drawArrays(gl.LINE_LOOP, i, 3);
+                    }
+                }
+                if (this.selected) {
+                    for(var i = 0; i < this.buffer.numVert; i += 3) {
+                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(getComplement(this.materialColor)));  gl.drawArrays(gl.LINE_LOOP, i, 3);
                     }
                 }
                 break;
@@ -356,6 +368,11 @@ function changeCameraPosition() {
     cameraMatrix = lookAt(eye, at , up);
 }
 
+/* return an approximate complimentary color */
+function getComplement(c) {
+    return [1.0 - c[0], 1.0 - c[1], 1.0 - c[2], c[3]];
+}
+
 /***************************************************
  *                    UI handlers                  *
  ***************************************************/
@@ -381,8 +398,7 @@ function getMouseDown(event) {
         var option = document.createElement("option");
         option.text = "Object_" + objectsToDraw.length + "(" + SHAPES[currentShape][0] + ")";
         option.value = objectsToDraw.length + 10;
-        var select = document.getElementById("shapeSelector");
-        select.appendChild(option);
+        uiShapeSelector.appendChild(option);
         currentObjectID = objectsToDraw.length - 1;
     }
     document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
@@ -402,8 +418,32 @@ function getMouseMove(event) {
 /* mouse up event handler */
 function getMouseUp(event) {
     isMouseDown = false;
-    var clip = mouseToClip(event);
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    if ((objectsToDraw[currentObjectID].scale[0] + objectsToDraw[currentObjectID].scale[1] + objectsToDraw[currentObjectID].scale[2]) === 0.0) {
+        uiShapeSelector.remove(3 + currentObjectID);
+        objectsToDraw.pop();
+    }
+    //var clip = mouseToClip(event);
+    //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+}
+
+/* mouse up event handler */
+function getMouseWheel(event) {
+    if (event.deltaY > 0) {
+        zoom += 0.1;
+        canvas.style.cursor = "zoom-out";
+    } else {
+        zoom -= 0.1;
+        canvas.style.cursor = "zoom-in";
+    }
+    changeCameraPosition();
+    event.preventDefault();
+    setTimeout(function() {
+        if (drawNew) {
+            canvas.style.cursor = "crosshair";
+        } else {
+            canvas.style.cursor = "default";
+        }
+    }, 500);
 }
 
 /* set shape */
@@ -411,22 +451,31 @@ function setShape(value) {
     if (value > 3 && value < 10) {
         drawNew = true;
         currentShape = parseInt(value);
-        objectsToDraw[currentObjectID].wireFrame = false;
+        objectsToDraw[currentObjectID].selected = false;
+        canvas.style.cursor = "crosshair";
     } else if (value >= 10) {
+        var temp;
         drawNew = false;
-        objectsToDraw[currentObjectID].wireFrame = false;
+        objectsToDraw[currentObjectID].selected = false;
         currentObjectID = value - 11;
-        uiCol.value    = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
-        uiScaleX.value = roundDown(objectsToDraw[currentObjectID].scale[0]);
-        uiScaleY.value = roundDown(objectsToDraw[currentObjectID].scale[1]);
-        uiScaleZ.value = roundDown(objectsToDraw[currentObjectID].scale[2]);
-        uiRotX.value   = roundDown(objectsToDraw[currentObjectID].rotate[0]);
-        uiRotY.value   = roundDown(objectsToDraw[currentObjectID].rotate[1]);
-        uiRotZ.value   = roundDown(objectsToDraw[currentObjectID].rotate[2]);
-        uiMoveX.value  = roundDown(objectsToDraw[currentObjectID].translate[0]);
-        uiMoveY.value  = roundDown(objectsToDraw[currentObjectID].translate[1]);
-        uiMoveZ.value  = roundDown(objectsToDraw[currentObjectID].translate[2]);
-        objectsToDraw[currentObjectID].wireFrame = true;
+        uiObjectCol.value = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
+        for (var i = 0; i < 9; i++) {
+            if (i % 3 == 0) {
+                temp = roundDown(objectsToDraw[currentObjectID].scale[Math.floor(i / 3)]);
+                uiObjectPos[i].value = temp;
+                uiObjectPosVal[i].innerHTML = temp;
+            } else if (i % 3 == 1) {
+                temp = roundDown(objectsToDraw[currentObjectID].rotate[Math.floor(i / 3)]);
+                uiObjectPos[i].value = temp;
+                uiObjectPosVal[i].innerHTML = temp;
+            } else {
+                temp = roundDown(objectsToDraw[currentObjectID].translate[Math.floor(i / 3)]);
+                uiObjectPos[i].value = temp;
+                uiObjectPosVal[i].innerHTML = temp;
+            }
+        }
+        objectsToDraw[currentObjectID].selected = true;
+        canvas.style.cursor = "default";
     } else {
         console.log("Drawing " + value + " is not supported");
     }
@@ -436,22 +485,33 @@ function setShape(value) {
 function setColor(value) {
     var rgb = hexToRGB(value);
     currentColor = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
-    objectsToDraw[currentObjectID].materialColor = currentColor;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].materialColor = currentColor;
+    }
 }
 
 /* set scale */
 function setScale(index, value) {
-    objectsToDraw[currentObjectID].scale[index] = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].scale[index] = value;
+    }
+    uiObjectPosVal[index * 3].innerHTML = value;
 }
 
 /* set rotation */
 function setRotation(index, value) {
-    objectsToDraw[currentObjectID].rotate[index] = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].rotate[index] = value;
+    }
+    uiObjectPosVal[index * 3 + 1].innerHTML = value;
 }
 
 /* set translation */
 function setTranslation(index, value) {
-    objectsToDraw[currentObjectID].translate[index] = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].translate[index] = value;
+    }
+    uiObjectPosVal[index * 3 + 2].innerHTML = value;
 }
 
 /* set canvas color */
@@ -480,8 +540,13 @@ function saveImage() {
 
 /* capture shift key press */
 function handleKeyDown(event){
-    if (event.keyCode === 16 || event.charCode === 16){
-        shiftDown = true;
+    switch (event.keyCode) {
+        case 16:
+            shiftDown = true;
+            break;
+        case 82:
+            resetAxes();
+            break;
     }
     
     if (event.keyCode > 32 && event.keyCode < 41) {
@@ -530,4 +595,5 @@ function setPointLightColor(value) {
 
 function setPointLightPos(index, value) {
     pointLightPos[index] = value;
+    uiPointLightPosVal[index].innerHTML = value;
 }
