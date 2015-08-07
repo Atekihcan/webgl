@@ -12,6 +12,7 @@ var SHAPES = {
     3: ["zAxis", 1],
     4: ["Cube", 1],
     5: ["Cuboid", 0],
+    6: ["Sphere", 0],
 };
 
 var AXES = [];
@@ -20,7 +21,7 @@ var objectsToDraw = [];
 
 var drawNew = true;
 var shapeBufs = [];
-var currentShape  = 4;
+var currentShape  = 6;
 var currentObjectID = null;
 var uiShapeSelector, uiObjectCol; 
 var uiObjectPos = [], uiObjectPosVal = [];
@@ -34,6 +35,9 @@ var pointLightSpecular = [1.0, 1.0, 1.0];
 var pointLightDiffuse  = [1.0, 1.0, 1.0];
 var pointLightPos      = [0.0, 0.0, 1.0];
 var currentColor       = [1.0, 0.0, 0.0, 1.0];
+var currentScale       = [1.0, 1.0, 1.0];
+var currentRotate      = [0, 0, 0];
+var currentTranslate   = [0.0, 0.0, 0.0];
 
 /* lights UI checkboxes */
 var ambientLightOn, pointLightOn;
@@ -72,7 +76,7 @@ function initWebGL(shaderSources) {
     
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 7; i++) {
         shapeBufs.push(gl.createBuffer());
         gl.bindBuffer(gl.ARRAY_BUFFER, shapeBufs[i]);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(getPrimitiveVertexData(i)), gl.STATIC_DRAW);
@@ -157,10 +161,10 @@ window.onload = function init() {
     asyncLoadShaders("assignment03", shaders, initWebGL);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-    pointLightOn = document.getElementById('pointLight');
-    ambientLightOn = document.getElementById('ambientLight');
-    uiObjectCol    = document.getElementById('objColUI');
-    uiShapeSelector = document.getElementById("shapeSelector");
+    pointLightOn       = document.getElementById('pointLight');
+    ambientLightOn     = document.getElementById('ambientLight');
+    uiObjectCol        = document.getElementById('objColUI');
+    uiShapeSelector    = document.getElementById('shapeSelector');
     for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
             uiObjectPos.push(document.getElementById('uiObjectPos_' + i + j));
@@ -191,11 +195,11 @@ window.onload = function init() {
  ***************************************************/
 /* object primitive */
 function Geometry(shape, color, start, symmetry) {
-    start = setDefault(start, [0.0, 0.0, 0.0]);
+    start = setDefault(start, JSON.parse(JSON.stringify(currentTranslate)));
     symmetry = setDefault(symmetry, false);
     this.center            = start;
-    this.scale             = [0.0, 0.0, 0.0];
-    this.rotate            = [0.0, 0.0, 0.0];
+    this.scale             = JSON.parse(JSON.stringify(currentScale));
+    this.rotate            = JSON.parse(JSON.stringify(currentRotate));
     this.translate         = start;
     this.shape             = shape;
     this.materialColor     = color;
@@ -204,6 +208,7 @@ function Geometry(shape, color, start, symmetry) {
     this.fill              = true;
     this.wireFrame         = false;
     this.selected          = false;
+    this.render            = false;
     this.buffer = {
         vbo: shapeBufs[this.shape],
         numVert: 0,
@@ -214,16 +219,21 @@ function Geometry(shape, color, start, symmetry) {
         case 0:
             this.lighting = false;
             this.buffer.numVert = 1;
+            this.render = true;
             break;
         case 1:
         case 2:
         case 3:
             this.lighting = false;
             this.buffer.numVert = 102;
+            this.render = true;
             break;
         case 4:
         case 5:
             this.buffer.numVert = 36;
+            break;
+        case 6:
+            this.buffer.numVert = 12 * parseInt(Math.pow(2, 2* 5));
             break;
         default:
             console.log("Shape " + SHAPES[this.shape][0] + " is not supported");
@@ -245,6 +255,9 @@ function Geometry(shape, color, start, symmetry) {
     
     // draw method for objects
     this.draw = function() {
+        if (!this.render) {
+            return;
+        }
         loadGlobalUniforms();
         loadVertexAttribs(this.buffer.vbo);
         loadObjectUniforms(this);
@@ -270,7 +283,15 @@ function Geometry(shape, color, start, symmetry) {
                 }
                 if (this.selected) {
                     for(var i = 0; i < this.buffer.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(getComplement(this.materialColor)));  gl.drawArrays(gl.LINE_LOOP, i, 3);
+                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(getComplement(this.materialColor)));
+                        gl.drawArrays(gl.LINE_LOOP, i, 3);
+                    }
+                }
+                break;
+            case 6:
+                if (this.fill) {
+                    for (var i = 0; i < this.buffer.numVert; i += 3) {
+                        gl.drawArrays(gl.TRIANGLES, i, 3);
                     }
                 }
                 break;
@@ -314,39 +335,10 @@ function getPrimitiveVertexData(index) {
         // cube
         case 4:
         case 5:
-            var vert = [
-                /* front face */
-                [-1.0, -1.0, +1.0],
-                [+1.0, -1.0, +1.0],
-                [+1.0, +1.0, +1.0],
-                [-1.0, +1.0, +1.0],
-                /* back face */
-                [-1.0, -1.0, -1.0],
-                [+1.0, -1.0, -1.0],
-                [+1.0, +1.0, -1.0],
-                [-1.0, +1.0, -1.0],
-            ];
-            
-            v = [
-                // front
-                vert[0], [0.0,  0.0,  1.0], vert[1], [0.0,  0.0,  1.0], vert[2], [0.0,  0.0,  1.0],
-                vert[0], [0.0,  0.0,  1.0], vert[2], [0.0,  0.0,  1.0], vert[3], [0.0,  0.0,  1.0],
-                // back
-                vert[4], [0.0,  0.0, -1.0], vert[5], [0.0,  0.0, -1.0], vert[6], [0.0,  0.0, -1.0],
-                vert[4], [0.0,  0.0, -1.0], vert[6], [0.0,  0.0, -1.0], vert[7], [0.0,  0.0, -1.0],
-                // left
-                vert[0], [-1.0,  0.0,  0.0], vert[4], [-1.0,  0.0,  0.0], vert[7], [-1.0,  0.0,  0.0],
-                vert[0], [-1.0,  0.0,  0.0], vert[7], [-1.0,  0.0,  0.0], vert[3], [-1.0,  0.0,  0.0],
-                // right
-                vert[1], [1.0,  0.0,  0.0], vert[5], [1.0,  0.0,  0.0], vert[6], [1.0,  0.0,  0.0],
-                vert[1], [1.0,  0.0,  0.0], vert[6], [1.0,  0.0,  0.0], vert[2], [1.0,  0.0,  0.0],
-                // top
-                vert[2], [0.0,  1.0,  0.0], vert[6], [0.0,  1.0,  0.0], vert[7], [0.0,  1.0,  0.0],
-                vert[2], [0.0,  1.0,  0.0], vert[7], [0.0,  1.0,  0.0], vert[3], [0.0,  1.0,  0.0],
-                // bottom
-                vert[1], [0.0, -1.0,  0.0], vert[5], [0.0, -1.0,  0.0], vert[4], [0.0, -1.0,  0.0],
-                vert[1], [0.0, -1.0,  0.0], vert[4], [0.0, -1.0,  0.0], vert[0], [0.0, -1.0,  0.0]
-            ];
+            v = getCubeVertexData();
+            break;
+        case 6:
+            v = getSphereVertexData();
             break;
         default:
             console.error("shape " + SHAPES[index][0] + " is not supported");
@@ -395,10 +387,7 @@ function getMouseDown(event) {
     if (drawNew) {
         objectsToDraw.push(new Geometry(currentShape, currentColor, [clip[0], clip[1], 0.0], SHAPES[currentShape][1] || shiftDown));
         // add new object to shape select list
-        var option = document.createElement("option");
-        option.text = "Object_" + objectsToDraw.length + "(" + SHAPES[currentShape][0] + ")";
-        option.value = objectsToDraw.length + 10;
-        uiShapeSelector.appendChild(option);
+        rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
     }
     document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
@@ -409,6 +398,9 @@ function getMouseMove(event) {
     if (isMouseDown) {
         var clip = mouseToClip(event);
         if (drawNew) {
+            if (!objectsToDraw[currentObjectID].render) {
+                objectsToDraw[currentObjectID].render = true;
+            }
             objectsToDraw[currentObjectID].modifyShape(clip);
         }
         document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
@@ -418,9 +410,10 @@ function getMouseMove(event) {
 /* mouse up event handler */
 function getMouseUp(event) {
     isMouseDown = false;
-    if ((objectsToDraw[currentObjectID].scale[0] + objectsToDraw[currentObjectID].scale[1] + objectsToDraw[currentObjectID].scale[2]) === 0.0) {
-        uiShapeSelector.remove(3 + currentObjectID);
+    if (!objectsToDraw[currentObjectID].render) {
+        currentObjectID--;
         objectsToDraw.pop();
+        rePopulateShapeSelector();
     }
     //var clip = mouseToClip(event);
     //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
@@ -451,14 +444,19 @@ function setShape(value) {
     if (value > 3 && value < 10) {
         drawNew = true;
         currentShape = parseInt(value);
-        objectsToDraw[currentObjectID].selected = false;
+        console.log(currentScale);
+        if (currentObjectID != null) {
+            objectsToDraw[currentObjectID].selected = false;
+        }
         canvas.style.cursor = "crosshair";
-    } else if (value >= 10) {
+    } else if (value > 10) {
         var temp;
         drawNew = false;
-        objectsToDraw[currentObjectID].selected = false;
+        if (currentObjectID != null) {
+            objectsToDraw[currentObjectID].selected = false;
+        }
         currentObjectID = value - 11;
-        uiObjectCol.value = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
+        uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
         for (var i = 0; i < 9; i++) {
             if (i % 3 == 0) {
                 temp = roundDown(objectsToDraw[currentObjectID].scale[Math.floor(i / 3)]);
@@ -485,33 +483,65 @@ function setShape(value) {
 function setColor(value) {
     var rgb = hexToRGB(value);
     currentColor = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
-    if (currentObjectID != null) {
+    if (!drawNew && currentObjectID != null) {
         objectsToDraw[currentObjectID].materialColor = currentColor;
     }
 }
 
 /* set scale */
 function setScale(index, value) {
-    if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].scale[index] = value;
+    if (drawNew) {
+        currentScale[index] = value;
+    } else {
+        if (currentObjectID != null) {
+            objectsToDraw[currentObjectID].scale[index] = value;
+        }
     }
     uiObjectPosVal[index * 3].innerHTML = value;
 }
 
 /* set rotation */
 function setRotation(index, value) {
-    if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].rotate[index] = value;
+    if (drawNew) {
+        currentRotate[index] = value;
+    } else {
+        if (currentObjectID != null) {
+            objectsToDraw[currentObjectID].rotate[index] = value;
+        }
     }
     uiObjectPosVal[index * 3 + 1].innerHTML = value;
 }
 
+
 /* set translation */
 function setTranslation(index, value) {
-    if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].translate[index] = value;
+    if (drawNew) {
+        currentTranslate[index] = value;
+    } else {
+        if (currentObjectID != null) {
+            objectsToDraw[currentObjectID].translate[index] = value;
+        }
     }
     uiObjectPosVal[index * 3 + 2].innerHTML = value;
+}
+
+/* delete object */
+function deleteObject() {
+    objectsToDraw.splice(currentObjectID, 1);
+    rePopulateShapeSelector();
+    currentObjectID = 0;
+}
+
+/* draw new object */
+function drawObject(shapeType) {
+    var center = [uiObjectPos[2].value, uiObjectPos[5].value, uiObjectPos[8].value];
+    var newObject = new Geometry(shapeType, currentColor, center);
+    newObject.scale = [uiObjectPos[0].value, uiObjectPos[3].value, uiObjectPos[6].value];
+    newObject.rotate = [uiObjectPos[1].value, uiObjectPos[4].value, uiObjectPos[7].value];
+    newObject.render = true;
+    objectsToDraw.push(newObject);
+    rePopulateShapeSelector();
+    currentObjectID = objectsToDraw.length - 1;
 }
 
 /* set canvas color */
@@ -596,4 +626,21 @@ function setPointLightColor(value) {
 function setPointLightPos(index, value) {
     pointLightPos[index] = value;
     uiPointLightPosVal[index].innerHTML = value;
+}
+
+/* populate shape selector */
+function rePopulateShapeSelector() {
+    uiShapeSelector.options.length = 0;
+    var i = 1;
+    var option = document.createElement("option");
+    option.text = "Select an Object";
+    option.value = 0;
+    uiShapeSelector.appendChild(option);
+    objectsToDraw.forEach(function(object) {
+        var option = document.createElement("option");
+        option.text = "Object_" + i + " (" + SHAPES[object.shape][0] + ")";
+        option.value = i + 10;
+        uiShapeSelector.appendChild(option);
+        i++;
+    });
 }
