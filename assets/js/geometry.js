@@ -1,6 +1,7 @@
 /***************************************************
  *           primitive vertex positions            *
  ***************************************************/
+/* cube vertex positions */
 var cubeVert = [
     /* front face */
     [-1.0, -1.0, +1.0],
@@ -14,14 +15,54 @@ var cubeVert = [
     [-1.0, +1.0, -1.0],
 ];
 
-var sphereVert = [
-    [+0.0,      +0.0,      -1.0,    ],
-    [+0.0,      +0.942809, +0.333333],
-    [-0.816497, -0.471405, +0.333333],
-    [+0.816497, -0.471405, +0.333333],
+/* sphere data generator */
+var X = 0.525731112119133606;
+var Z = 0.850650808352039932;
+
+var icosahedronVert = [    
+    [-X, 0.0, Z], [X, 0.0, Z], [-X, 0.0, -Z], [X, 0.0, -Z],    
+    [0.0, Z, X], [0.0, Z, -X], [0.0, -Z, X], [0.0, -Z, -X],    
+    [Z, X, 0.0], [-Z, X, 0.0], [Z, -X, 0.0], [-Z, -X, 0.0] 
 ];
 
-var pointsArray = [];
+var icosahedronIndx = [ 
+    [0,4,1], [0,9,4], [9,5,4], [4,5,8], [4,8,1],    
+    [8,10,1], [8,3,10], [5,3,8], [5,2,3], [2,7,3],    
+    [7,10,3], [7,6,10], [7,11,6], [11,0,6], [0,1,6], 
+    [6,1,10], [9,0,11], [9,11,2], [9,2,5], [7,2,11]
+];
+
+function drawtri(a, b, c, numDivision, r) {
+    if (numDivision <= 0) {
+        pointsArray.push(scaleBy(a, r));
+        pointsArray.push(a);
+        pointsArray.push(scaleBy(b, r));
+        pointsArray.push(b);
+        pointsArray.push(scaleBy(c, r));
+        pointsArray.push(c);
+    } else {
+        var ab = mix(a, b, 0.5);
+        var ac = mix(a, c, 0.5);
+        var bc = mix(b, c, 0.5);
+        
+        normalize(ab);
+        normalize(ac);
+        normalize(bc);
+        drawtri(a, ab, ac, numDivision - 1, r);
+        drawtri(b, bc, ab, numDivision - 1, r);
+        drawtri(c, ac, bc, numDivision - 1, r);
+        drawtri(ab, bc, ac, numDivision - 1, r);
+    }  
+}
+
+function drawSphere(numDivision, radius) {
+    for (var i = 0; i < 20; i++) {
+        drawtri(icosahedronVert[icosahedronIndx[i][0]], 
+                icosahedronVert[icosahedronIndx[i][1]], 
+                icosahedronVert[icosahedronIndx[i][2]], 
+                numDivision , radius);
+    }
+}
 
 /***************************************************
  *         functions to create vertex data         *
@@ -53,45 +94,10 @@ function getCubeVertexData() {
 /* function for getting sphere vertex data */
 function getSphereVertexData() {
     pointsArray = [];
-    tetrahedron(sphereVert[0], sphereVert[1], sphereVert[2], sphereVert[3], 5);
+    drawSphere(3, 1.0);
     return pointsArray;
 }
 
 /***************************************************
  *         geometry utility functions              *
  ***************************************************/
-function triangle(a, b, c) {
-    pointsArray.push(a);
-    pointsArray.push(a);
-    pointsArray.push(b);
-    pointsArray.push(b);
-    pointsArray.push(c);
-    pointsArray.push(c);
-}
-
-function divideTriangle(a, b, c, count) {
-    if ( count > 0 ) {
-        var ab = mix( a, b, 0.5);
-        var ac = mix( a, c, 0.5);
-        var bc = mix( b, c, 0.5);
-
-        ab = normalize(ab, true);
-        ac = normalize(ac, true);
-        bc = normalize(bc, true);
-
-        divideTriangle( a, ab, ac, count - 1 );
-        divideTriangle( ab, b, bc, count - 1 );
-        divideTriangle( bc, c, ac, count - 1 );
-        divideTriangle( ab, bc, ac, count - 1 );
-    }
-    else {
-        triangle( a, b, c );
-    }
-}
-
-function tetrahedron(a, b, c, d, n) {
-    divideTriangle(a, b, c, n);
-    divideTriangle(d, c, b, n);
-    divideTriangle(a, d, b, n);
-    divideTriangle(a, c, d, n);
-}

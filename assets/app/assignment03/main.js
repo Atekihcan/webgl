@@ -6,42 +6,46 @@ var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false;
 
 var SHAPES = {
-    0: ["light", 1],
-    1: ["xAxis", 1],
-    2: ["yAxis", 1],
-    3: ["zAxis", 1],
-    4: ["Cube", 1],
-    5: ["Cuboid", 0],
-    6: ["Sphere", 0],
+    // shape id: [shape name, number of vertices]
+    0: ["light", 0],
+    1: ["xAxis", 0],
+    2: ["yAxis", 0],
+    3: ["zAxis", 0],
+    4: ["Cuboid", 0],
+    5: ["Spheroid", 0],
 };
 
 var AXES = [];
 var LIGHTS = [];
-var objectsToDraw = [];
-
-var drawNew = true;
 var shapeBufs = [];
-var currentShape  = 6;
+var objectsToDraw = [];
+var currentShape  = 5;
 var currentObjectID = null;
-var uiShapeSelector, uiObjectCol; 
-var uiObjectPos = [], uiObjectPosVal = [];
-var uiPointLightPos = [], uiPointLightPosVal = [];
+var drawNew = true;
 var shiftDown = false;
 var isMouseDown = false;
 
-/* uniforms */
-var ambientLight       = [0.2, 0.2, 0.2];
-var pointLightSpecular = [1.0, 1.0, 1.0];
-var pointLightDiffuse  = [1.0, 1.0, 1.0];
-var pointLightPos      = [0.0, 0.0, 1.0];
+/* object properties */
 var currentColor       = [1.0, 0.0, 0.0, 1.0];
 var currentScale       = [1.0, 1.0, 1.0];
 var currentRotate      = [0, 0, 0];
 var currentTranslate   = [0.0, 0.0, 0.0];
 
-/* lights UI checkboxes */
-var ambientLightOn, pointLightOn;
+/* object ui parameters */
+var uiShapeSelector, uiObjectCol;
+var uiObjectPos = [], uiObjectPosVal = [];
 
+/* lights */
+var ambientLight       = [0.2, 0.2, 0.2];
+var pointLightSpecular = [1.0, 1.0, 1.0];
+var pointLightDiffuse  = [1.0, 1.0, 1.0];
+var pointLightPos      = [0.0, 0.0, 1.0];
+
+/* lights UI parameters */
+var ambientLightOn, pointLightOn;
+var uiPointLightPos = [], uiPointLightPosVal = [];
+
+/* camera/projection matrices */
 var cameraMatrix, pMatrix;
 const at = [0.0, 0.0, 0.0];
 const up = [0.0, 1.0, 0.0];
@@ -73,10 +77,11 @@ function initWebGL(shaderSources) {
     // set projection and model-view matrix
     pMatrix = perspective(45.0, canvas.width / canvas.height, 1.0, -1.0);
     changeCameraPosition();
-    
+
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
-    for (var i = 0; i < 7; i++) {
+    for (var key in SHAPES) {
+        var i = parseInt(key);
         shapeBufs.push(gl.createBuffer());
         gl.bindBuffer(gl.ARRAY_BUFFER, shapeBufs[i]);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(getPrimitiveVertexData(i)), gl.STATIC_DRAW);
@@ -171,12 +176,12 @@ window.onload = function init() {
             uiObjectPosVal.push(document.getElementById('uiObjectPosVal_' + i + j));
         }
     }
-    
+
     for (var i = 0; i < 3; i++) {
         uiPointLightPos.push(document.getElementById('uiPointLightPos_' + i));
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
-    
+
     //console.log(shapeBufs);
     AXES.push(new Geometry(1, [1.0, 0.0, 0.0, 1.0]));
     AXES.push(new Geometry(2, [0.0, 1.0, 0.0, 1.0]));
@@ -211,29 +216,24 @@ function Geometry(shape, color, start, symmetry) {
     this.render            = false;
     this.buffer = {
         vbo: shapeBufs[this.shape],
-        numVert: 0,
+        numVert: SHAPES[this.shape][2],
     };
-    
-    // disable lighting for special shapes(axes, lights) and set number of vertices
+
+    // disable lighting for special shapes(axes, lights) and enable rendering
     switch(this.shape) {
         case 0:
             this.lighting = false;
-            this.buffer.numVert = 1;
             this.render = true;
             break;
         case 1:
         case 2:
         case 3:
             this.lighting = false;
-            this.buffer.numVert = 102;
             this.render = true;
             break;
         case 4:
         case 5:
-            this.buffer.numVert = 36;
-            break;
         case 6:
-            this.buffer.numVert = 12 * parseInt(Math.pow(2, 2* 5));
             break;
         default:
             console.log("Shape " + SHAPES[this.shape][0] + " is not supported");
@@ -242,17 +242,17 @@ function Geometry(shape, color, start, symmetry) {
 
     // dynamically update the shape depending upon the mouse move endpoint
     this.modifyShape = function(end) {
-        // hack to make cube from rectangle when shift key is down
-        if (this.shape < 6 && this.symmetry) {
+        // hack to make symmetric shape when shift key is down
+        if (this.symmetry) {
             if (Math.abs(this.center[0] - end[0]) != Math.abs(this.center[1] - end[1])) {
                 end[1] = this.center[1] + sign(end[1] - this.center[1]) * Math.abs(this.center[0] - end[0]);
             }
-            
+
             this.scale = [Math.abs(end[0] - this.center[0]), Math.abs(end[1] - this.center[1]), Math.abs(end[1] - this.center[1])];
         }
         this.scale = [Math.abs(end[0] - this.center[0]), Math.abs(end[1] - this.center[1]), Math.abs(end[1] - this.center[1])];
     };
-    
+
     // draw method for objects
     this.draw = function() {
         if (!this.render) {
@@ -272,14 +272,9 @@ function Geometry(shape, color, start, symmetry) {
                 break;
             case 4:
             case 5:
+            case 6:
                 if (this.fill) {
                     gl.drawArrays(gl.TRIANGLES, 0, this.buffer.numVert);
-                }
-                if (this.wireFrame && !this.selected) {
-                    for(var i = 0; i < this.buffer.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten([0.2, 0.7, 0.9, 1.0]));
-                        gl.drawArrays(gl.LINE_LOOP, i, 3);
-                    }
                 }
                 if (this.selected) {
                     for(var i = 0; i < this.buffer.numVert; i += 3) {
@@ -287,11 +282,10 @@ function Geometry(shape, color, start, symmetry) {
                         gl.drawArrays(gl.LINE_LOOP, i, 3);
                     }
                 }
-                break;
-            case 6:
-                if (this.fill) {
-                    for (var i = 0; i < this.buffer.numVert; i += 3) {
-                        gl.drawArrays(gl.TRIANGLES, i, 3);
+                if (this.wireFrame && !this.selected) {
+                    for(var i = 0; i < this.buffer.numVert; i += 3) {
+                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten([0.2, 0.7, 0.9, 1.0]));
+                        gl.drawArrays(gl.LINE_LOOP, i, 3);
                     }
                 }
                 break;
@@ -334,16 +328,17 @@ function getPrimitiveVertexData(index) {
             break;
         // cube
         case 4:
-        case 5:
             v = getCubeVertexData();
             break;
-        case 6:
+        case 5:
             v = getSphereVertexData();
             break;
         default:
             console.error("shape " + SHAPES[index][0] + " is not supported");
             break;
     }
+
+    SHAPES[index][2] = v.length / 2;
     return v;
 }
 
@@ -353,8 +348,8 @@ function getPrimitiveVertexData(index) {
 /* make model-view matrix depending upon eye position */
 function changeCameraPosition() {
     var eye = vec3(
-        zoom * Math.sin(radians(theta)) * Math.cos(radians(phi)), 
-        zoom * Math.sin(radians(theta)) * Math.sin(radians(phi)), 
+        zoom * Math.sin(radians(theta)) * Math.cos(radians(phi)),
+        zoom * Math.sin(radians(theta)) * Math.sin(radians(phi)),
         zoom * Math.cos(radians(theta))
     );
     cameraMatrix = lookAt(eye, at , up);
@@ -440,22 +435,14 @@ function getMouseWheel(event) {
 }
 
 /* set shape */
-function setShape(value) {
-    if (value > 3 && value < 10) {
-        drawNew = true;
-        currentShape = parseInt(value);
-        console.log(currentScale);
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].selected = false;
-        }
-        canvas.style.cursor = "crosshair";
-    } else if (value > 10) {
+function selectObject(value) {
+    if (value >= 0 && value < objectsToDraw.length) {
         var temp;
         drawNew = false;
         if (currentObjectID != null) {
             objectsToDraw[currentObjectID].selected = false;
         }
-        currentObjectID = value - 11;
+        currentObjectID = value;
         uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
         for (var i = 0; i < 9; i++) {
             if (i % 3 == 0) {
@@ -512,7 +499,6 @@ function setRotation(index, value) {
     uiObjectPosVal[index * 3 + 1].innerHTML = value;
 }
 
-
 /* set translation */
 function setTranslation(index, value) {
     if (drawNew) {
@@ -532,8 +518,11 @@ function deleteObject() {
     currentObjectID = 0;
 }
 
-/* draw new object */
-function drawObject(shapeType) {
+/* select shape for new object */
+function selectShape(shapeType) {
+    currentShape = shapeType;
+    /*
+    // disable drawing new object.. may be later?
     var center = [uiObjectPos[2].value, uiObjectPos[5].value, uiObjectPos[8].value];
     var newObject = new Geometry(shapeType, currentColor, center);
     newObject.scale = [uiObjectPos[0].value, uiObjectPos[3].value, uiObjectPos[6].value];
@@ -542,6 +531,7 @@ function drawObject(shapeType) {
     objectsToDraw.push(newObject);
     rePopulateShapeSelector();
     currentObjectID = objectsToDraw.length - 1;
+    */
 }
 
 /* set canvas color */
@@ -568,17 +558,17 @@ function saveImage() {
     window.open(dataURL, "_blank");
 }
 
-/* capture shift key press */
+/* capture key press */
 function handleKeyDown(event){
     switch (event.keyCode) {
-        case 16:
+        case 16: // SHIFT key for drawing symmetrical shape
             shiftDown = true;
             break;
-        case 82:
+        case 82: // R key to reset the axes rotation
             resetAxes();
             break;
     }
-    
+
     if (event.keyCode > 32 && event.keyCode < 41) {
         switch (event.keyCode) {
             case 33:
@@ -606,7 +596,7 @@ function handleKeyDown(event){
 };
 
 function handleKeyUp(event){
-    if (event.keyCode === 16 || event.charCode === 16){
+    if (event.keyCode === 16){
         shiftDown = false;
     }
 }
@@ -631,7 +621,7 @@ function setPointLightPos(index, value) {
 /* populate shape selector */
 function rePopulateShapeSelector() {
     uiShapeSelector.options.length = 0;
-    var i = 1;
+    var i = 0;
     var option = document.createElement("option");
     option.text = "Select an Object";
     option.value = 0;
@@ -639,7 +629,7 @@ function rePopulateShapeSelector() {
     objectsToDraw.forEach(function(object) {
         var option = document.createElement("option");
         option.text = "Object_" + i + " (" + SHAPES[object.shape][0] + ")";
-        option.value = i + 10;
+        option.value = i;
         uiShapeSelector.appendChild(option);
         i++;
     });

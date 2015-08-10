@@ -607,6 +607,23 @@ function multMatVect( m, v )
     }
 }
 
+
+function scaleBy( v, s )
+{
+    var result = [];
+
+    if (!Array.isArray(v)) {
+        throw "scaleBy(): first argument is not a vector";
+    }
+    
+    for ( var i = 0; i < v.length; i++ ) {
+        result.push(v[i] * s);
+    }
+
+    return result;
+    
+}
+
 //----------------------------------------------------------------------------
 //
 //  Vector Functions

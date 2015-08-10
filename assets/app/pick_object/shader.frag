@@ -1,6 +1,13 @@
 precision mediump float;
 
+uniform int u_offscreen;
+uniform vec4 u_color;
+
 void main()
 {
-    gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+    if (u_offscreen == 1) {
+        gl_FragColor = u_color;
+    } else {
+        gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+    }
 }
