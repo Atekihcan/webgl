@@ -153,6 +153,23 @@ function componentToHex(c) {
     return hex.length == 1 ? "0" + hex : hex;
 }
 
+/* encode/decode number to color channel */
+function encodeColor(number, normalized) {
+    normalized = setDefault(normalized, true);
+    var r = (number % 256);
+    var g = (parseInt(number / 256));
+    if (normalized) {
+        return [r / 255.0, g / 255.0, 0.0];
+    } else {
+        return [r, g, 0];
+    }
+}
+
+function decodeColor(color) {
+    var number = (color[1] * 256) + color[0];
+    return number;
+}
+
 /* round num to n decimal places */
 function roundDown(num, n) {
     n = setDefault(n, 2);

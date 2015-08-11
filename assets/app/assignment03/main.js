@@ -3,6 +3,8 @@
 /* global variables */
 var canvas, gl, program;
 var shaders = ["shader.vert", "shader.frag"];
+var pickMode = false;
+var pickBuf;
 var stopRender = false;
 
 var SHAPES = {
@@ -93,6 +95,19 @@ function initWebGL(shaderSources) {
     if (program != null) {
         gl.useProgram(program);
     }
+    
+    // texture and framebuffer for offscreen rendering for object picking
+    var texture = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, texture );
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    // Allocate a frame buffer object
+    pickBuf = gl.createFramebuffer();
+    gl.bindFramebuffer( gl.FRAMEBUFFER, pickBuf);
+    // Attach color buffer
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
 /* load global uniforms */
@@ -147,7 +162,8 @@ function loadVertexAttribs(vbo) {
 /* render frames recursively */
 function render() {
     if (!stopRender) {
-        gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.uniform1i(gl.getUniformLocation(program, "u_offscreen"), 0);
         AXES.forEach(function(object) {
             object.draw();
         });
@@ -159,6 +175,19 @@ function render() {
         });
     }
     window.requestAnimFrame(render);
+}
+
+function renderOffline() {
+    if (!stopRender) {
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.uniform1i(gl.getUniformLocation(program, "u_offscreen"), 1);
+        var i = 0;
+        objectsToDraw.forEach(function(object) {
+            gl.uniform3fv(gl.getUniformLocation(program, "u_color"), flatten(encodeColor(i)));
+            object.draw();
+            i++;
+        });
+    }
 }
 
 /* start the application */
@@ -363,15 +392,41 @@ function getComplement(c) {
 /***************************************************
  *                    UI handlers                  *
  ***************************************************/
+/* get mouse coordinate */
+function mousePos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var x = e.clientX - rect.left,
+        y = e.clientY - rect.top;
+    return [x, y];
+}
+
 /* get mouse coordinate in terms of clip coordinate */
 function mouseToClip(e) {
     var rect = canvas.getBoundingClientRect();
     var x = e.clientX - rect.left,
         y = e.clientY - rect.top;
     return vec2(
-        (-1 + 2 * x / canvas.scrollWidth) * zoom / 2.0,
+        (-1 + 2 * x / canvas.scrollWidth) * zoom,
         (-1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight) * zoom / 2.0
     );
+}
+
+/* pick object */
+function pick(x, y) {
+    var color = new Uint8Array(4);
+    var stretch = [canvas.width / canvas.scrollWidth, canvas.height / canvas.scrollHeight];
+    gl.bindFramebuffer(gl.FRAMEBUFFER, pickBuf);
+    renderOffline();
+    gl.readPixels(parseInt(x * stretch[0]), parseInt(canvas.scrollHeight - y * stretch[1]), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, color);
+    var id = decodeColor(color);
+    console.log(parseInt(x * stretch[0]), parseInt(y * stretch[1]), color);
+    objectsToDraw[currentObjectID].selected = false;
+    if (id >= 0 && id < objectsToDraw.length) {
+        currentObjectID = id;
+        uiShapeSelector.selectedIndex = id;
+        objectsToDraw[currentObjectID].selected = true;
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
 /* mouse down event handler */
@@ -379,6 +434,10 @@ function getMouseDown(event) {
     isMouseDown = true;
     stopRender = false;
     var clip = mouseToClip(event);
+    if (pickMode) {
+        var clik = mousePos(event);
+        pick(clik[0], clik[1]);
+    }
     if (drawNew) {
         objectsToDraw.push(new Geometry(currentShape, currentColor, [clip[0], clip[1], 0.0], SHAPES[currentShape][1] || shiftDown));
         // add new object to shape select list
@@ -520,6 +579,11 @@ function deleteObject() {
 
 /* select shape for new object */
 function selectShape(shapeType) {
+    pickMode = false;
+    drawNew = true;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].selected = false;
+    }
     currentShape = shapeType;
     /*
     // disable drawing new object.. may be later?
@@ -622,10 +686,12 @@ function setPointLightPos(index, value) {
 function rePopulateShapeSelector() {
     uiShapeSelector.options.length = 0;
     var i = 0;
-    var option = document.createElement("option");
-    option.text = "Select an Object";
-    option.value = 0;
-    uiShapeSelector.appendChild(option);
+    if (objectsToDraw.length < 1) {
+        var option = document.createElement("option");
+        option.text = "Draw an Object";
+        option.value = 0;
+        uiShapeSelector.appendChild(option);
+    }
     objectsToDraw.forEach(function(object) {
         var option = document.createElement("option");
         option.text = "Object_" + i + " (" + SHAPES[object.shape][0] + ")";
@@ -633,4 +699,10 @@ function rePopulateShapeSelector() {
         uiShapeSelector.appendChild(option);
         i++;
     });
+}
+
+/**/
+function setPickMode() {
+    pickMode = true;
+    drawNew = false;
 }

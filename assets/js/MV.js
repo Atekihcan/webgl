@@ -730,7 +730,9 @@ function mix( u, v, s )
 
 //----------------------------------------------------------------------------
 
-function flatten( v )
+function flatten( v, intArray )
+{
+    intArray = typeof intArray == 'undefined' ? false : intArray;
 {
     if ( v.matrix === true ) {
         v = transpose( v );
@@ -744,7 +746,11 @@ function flatten( v )
         n *= v[0].length;
     }
 
-    var floats = new Float32Array( n );
+    if (intArray) {
+        var floats = new Uint16Array( n );
+    } else {
+        var floats = new Float32Array( n );
+    }
 
     if ( elemsAreArrays ) {
         var idx = 0;
