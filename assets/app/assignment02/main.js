@@ -76,45 +76,12 @@ function render() {
     window.requestAnimFrame(render);
 }
 
-/* setup the second canvas for drawing cursor */
-function setupCursor() {
-    var cursorCanvas = document.getElementById("cur-canvas");
-    var ctx = cursorCanvas.getContext("2d");
-    cursorCanvas.addEventListener("mousemove", handleMouseMove, false);
-
-    function handleMouseMove(e){
-        e.preventDefault();
-        e.stopPropagation();
-        var rect = cursorCanvas.getBoundingClientRect();
-        var x = e.clientX - rect.left,
-            y = e.clientY - rect.top;
-
-        ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
-        ctx.beginPath();
-        if (bMode) {
-            ctx.arc(x, y, bSize, 0, 2 * Math.PI, false);
-            ctx.fillStyle = bColorStr;
-            ctx.fill();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = '#003300';
-        } else {
-            ctx.moveTo(x - 2 * bSize, y - 2 * bSize);
-            ctx.lineTo(x - 2 * bSize, y + 2 * bSize);
-            ctx.lineTo(x + 2 * bSize, y + 2 * bSize);
-            ctx.lineTo(x + 2 * bSize, y - 2 * bSize);
-            ctx.lineTo(x - 2 * bSize, y - 2 * bSize);
-        }
-        ctx.stroke();
-    }
-}
-
 /* start the application */
 window.onload = function init() {
     asyncLoadShaders("assignment02", shaders, initWebGL);
     currentProgram = programs[0];
     prepareVertexData();
     render();
-    //setupCursor();
 };
 
 /***************************************************

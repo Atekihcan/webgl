@@ -418,13 +418,17 @@ function pick(x, y) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, pickBuf);
     renderOffline();
     gl.readPixels(parseInt(x * stretch[0]), parseInt(canvas.scrollHeight - y * stretch[1]), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, color);
-    var id = decodeColor(color);
-    console.log(parseInt(x * stretch[0]), parseInt(y * stretch[1]), color);
-    objectsToDraw[currentObjectID].selected = false;
-    if (id >= 0 && id < objectsToDraw.length) {
-        currentObjectID = id;
-        uiShapeSelector.selectedIndex = id;
-        objectsToDraw[currentObjectID].selected = true;
+    //console.log(parseInt(x * stretch[0]), parseInt(y * stretch[1]), color);
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].selected = false;
+    }
+    if (color[3] > 0) {
+        var id = decodeColor(color);
+        if (id >= 0 && id < objectsToDraw.length) {
+            currentObjectID = id;
+            uiShapeSelector.selectedIndex = id;
+            objectsToDraw[currentObjectID].selected = true;
+        }
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
@@ -444,7 +448,7 @@ function getMouseDown(event) {
         rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
     }
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
 }
 
 /* mouse move event handler */
@@ -457,20 +461,24 @@ function getMouseMove(event) {
             }
             objectsToDraw[currentObjectID].modifyShape(clip);
         }
-        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
     }
+    var stretch = [canvas.width / canvas.scrollWidth, canvas.height / canvas.scrollHeight];
+    var pos = mousePos(event);
+    //console.log(canvas.scrollWidth, canvas.scrollHeight);
+    document.getElementById("info").innerHTML = parseInt(pos[0] * stretch[0]) + ", " + parseInt(pos[1] * stretch[1]);
 }
 
 /* mouse up event handler */
 function getMouseUp(event) {
     isMouseDown = false;
-    if (!objectsToDraw[currentObjectID].render) {
+    if (currentObjectID != null && !objectsToDraw[currentObjectID].render) {
         currentObjectID--;
         objectsToDraw.pop();
         rePopulateShapeSelector();
     }
     //var clip = mouseToClip(event);
-    //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", "+ Math.round(clip[1] * 100) / 100;
+    //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
 }
 
 /* mouse up event handler */
@@ -574,7 +582,7 @@ function setTranslation(index, value) {
 function deleteObject() {
     objectsToDraw.splice(currentObjectID, 1);
     rePopulateShapeSelector();
-    currentObjectID = 0;
+    currentObjectID = null;
 }
 
 /* select shape for new object */
@@ -631,26 +639,30 @@ function handleKeyDown(event){
         case 82: // R key to reset the axes rotation
             resetAxes();
             break;
+        case 46: // delete key to delete object
+            deleteObject();
+            event.preventDefault();
+            break;
     }
 
     if (event.keyCode > 32 && event.keyCode < 41) {
         switch (event.keyCode) {
-            case 33:
+            case 33: // page up to zoom in
                 zoom -= 0.1;
                 break;
-            case 34:
+            case 34: // page down to zoom out
                 zoom += 0.1;
                 break;
-            case 37:
+            case 37: // left
                 theta -= 1.0;
                 break;
-            case 39:
+            case 39: // right
                 theta += 1.0;
                 break;
-            case 38:
+            case 38: // up
                 phi += 1.0;
                 break;
-            case 40:
+            case 40: // down
                 phi -= 1.0;
                 break;
         }

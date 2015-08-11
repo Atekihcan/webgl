@@ -733,7 +733,6 @@ function mix( u, v, s )
 function flatten( v, intArray )
 {
     intArray = typeof intArray == 'undefined' ? false : intArray;
-{
     if ( v.matrix === true ) {
         v = transpose( v );
     }
