@@ -15,7 +15,8 @@ var SHAPES = {
     3: ["zAxis", 0],
     4: ["Cuboid", 0],
     5: ["Spheroid", 0],
-    6: ["Cylinder", 0]
+    6: ["Cylinder", 0],
+    7: ["Cone", 0]
 };
 
 var AXES = [];
@@ -278,6 +279,7 @@ function Geometry(shape, color, start, symmetry) {
         case 4:
         case 5:
         case 6:
+        case 7:
             break;
         default:
             console.log("Shape " + SHAPES[this.shape][0] + " is not supported");
@@ -316,23 +318,8 @@ function Geometry(shape, color, start, symmetry) {
                 break;
             case 4:
             case 5:
-                if (offline || this.fill) {
-                    gl.drawArrays(gl.TRIANGLES, 0, this.buffer.numVert);
-                }
-                if (!offline && this.selected) {
-                    for(var i = 0; i < this.buffer.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(getComplement(this.materialColor)));
-                        gl.drawArrays(gl.LINE_LOOP, i, 3);
-                    }
-                }
-                if (!offline && this.wireFrame && !this.selected) {
-                    for(var i = 0; i < this.buffer.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten([0.2, 0.7, 0.9, 1.0]));
-                        gl.drawArrays(gl.LINE_LOOP, i, 3);
-                    }
-                }
-                break;
             case 6:
+            case 7:
                 if (offline || this.fill) {
                     gl.drawArrays(gl.TRIANGLES, 0, this.buffer.numVert);
                 }
@@ -395,6 +382,9 @@ function getPrimitiveVertexData(index) {
             break;
         case 6:
             v = getCylinderVertexData();
+            break;
+        case 7:
+            v = getConeVertexData();
             break;
         default:
             console.error("shape " + SHAPES[index][0] + " is not supported");

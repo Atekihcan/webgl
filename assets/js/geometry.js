@@ -98,7 +98,7 @@ function getSphereVertexData() {
     return pointsArray;
 }
 
-/* function for getting sphere vertex data */
+/* function for getting cylinder vertex data */
 function getCylinderVertexData() {
     pointsArray = [];
     var n = 50;
@@ -144,6 +144,36 @@ function getCylinderVertexData() {
     return pointsArray;
 }
 
+/* function for getting cone vertex data */
+function getConeVertexData() {
+    pointsArray = [];
+    var n = 50;
+    var tip = [0.0, 0.0, +1.0];
+    var v_base = createPolygonFan([0.0, 0.0, -1.0], 1.0, n);
+    // base
+    for (var i = 1; i <= n; i++) {
+        pointsArray.push(v_base[0]);
+        pointsArray.push([0.0, 0.0, -1.0]);
+        pointsArray.push(v_base[i]);
+        pointsArray.push([0.0, 0.0, -1.0]);
+        pointsArray.push(v_base[i + 1]);
+        pointsArray.push([0.0, 0.0, -1.0]);
+    }
+
+    // body
+    for (var i = 1; i <= n; i++) {
+        // triangle strip 1
+        var normal = getSurfaceNormal(tip, v_base[i], v_base[i + 1]);
+        pointsArray.push(tip);
+        pointsArray.push(normal);
+        pointsArray.push(v_base[i]);
+        pointsArray.push(normal);
+        pointsArray.push(v_base[i + 1]);
+        pointsArray.push(normal);
+    }
+    return pointsArray;
+}
+
 
 /***************************************************
  *         geometry utility functions              *
@@ -178,4 +208,9 @@ function createPolygonFan(center, radius, numPoints, normal) {
         }
     }
     return v;
+}
+
+/* calculate surface normal for a triangle strip */
+function getSurfaceNormal(a, b, c) {
+    return normalize(cross(subtract(c, a), subtract(b, a)));
 }
