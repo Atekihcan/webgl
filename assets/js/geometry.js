@@ -98,6 +98,84 @@ function getSphereVertexData() {
     return pointsArray;
 }
 
+/* function for getting sphere vertex data */
+function getCylinderVertexData() {
+    pointsArray = [];
+    var n = 50;
+    var v_front = createPolygonFan([0.0, 0.0, +1.0], 1.0, n);
+    var v_back  = createPolygonFan([0.0, 0.0, -1.0], 1.0, n);
+    // front face
+    for (var i = 1; i <= n; i++) {
+        pointsArray.push(v_front[0]);
+        pointsArray.push([0.0, 0.0, +1.0]);
+        pointsArray.push(v_front[i]);
+        pointsArray.push([0.0, 0.0, +1.0]);
+        pointsArray.push(v_front[i + 1]);
+        pointsArray.push([0.0, 0.0, +1.0]);
+    }
+
+    // body
+    for (var i = 1; i <= n; i++) {
+        // triangle strip 1
+        pointsArray.push(v_front[i]);
+        pointsArray.push(v_front[i]);
+        pointsArray.push(v_back[i]);
+        pointsArray.push(v_back[i]);
+        pointsArray.push(v_front[i + 1]);
+        pointsArray.push(v_front[i + 1]);
+        // triangle strip 2
+        pointsArray.push(v_front[i + 1]);
+        pointsArray.push(v_front[i + 1]);
+        pointsArray.push(v_back[i]);
+        pointsArray.push(v_back[i]);
+        pointsArray.push(v_back[i + 1]);
+        pointsArray.push(v_back[i + 1]);
+    }
+
+    // back face
+    for (var i = 1; i <= n; i++) {
+        pointsArray.push(v_back[0]);
+        pointsArray.push([0.0, 0.0, -1.0]);
+        pointsArray.push(v_back[i]);
+        pointsArray.push([0.0, 0.0, -1.0]);
+        pointsArray.push(v_back[i + 1]);
+        pointsArray.push([0.0, 0.0, -1.0]);
+    }
+    return pointsArray;
+}
+
+
 /***************************************************
  *         geometry utility functions              *
  ***************************************************/
+/* create n-sided polygon to be used with TRIANGLE_FAN */
+function createPolygonFan(center, radius, numPoints, normal) {
+    var v = [];
+    var withZ = false;
+    var pushNormals = false;
+    if (center.length == 3) {
+        withZ = true;
+    }
+    if (typeof normal != 'undefined') {
+        pushNormals = true;
+    }
+
+    v.push(center);
+    if (pushNormals) {
+        v.push(normal);
+    }
+    for (var i = 0; i <= numPoints; i++) {
+        if (withZ) {
+            v.push([center[0] + radius * Math.sin(i * 2 * Math.PI / numPoints), center[1] + radius * Math.cos(i * 2 * Math.PI / numPoints), center[2]]);
+            if (pushNormals) {
+                v.push(normal);
+            }
+        } else {
+            v.push([center[0] + radius * Math.sin(i * 2 * Math.PI / numPoints), center[1] + radius * Math.cos(i * 2 * Math.PI / numPoints)]);
+            if (pushNormals) {
+                v.push(normal);
+            }
+        }
+    }
+    return v;
+}

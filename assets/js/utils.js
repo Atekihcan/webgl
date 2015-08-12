@@ -179,7 +179,6 @@ function roundDown(num, n) {
 
 /* set default value for an undefined parameter */
 function setDefault(param, value) {
-    //param = typeof param !== 'undefined' ? param : value;
     if (typeof param == 'undefined') {
         return value;
     } else {

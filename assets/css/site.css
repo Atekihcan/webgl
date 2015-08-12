@@ -95,13 +95,8 @@ input[type=range]::-moz-range-thumb {
     background: #000080;
 }
 
-input[type=range]:-moz-focusring{
-    outline: 1px solid white;
-    outline-offset: -1px;
-}
-
-input[type=range]:focus::-moz-range-track {
-    background: #ccc;
+input[type=range]::-moz-focus-outer {
+    border: 0;
 }
 
 input[type="color"] {
