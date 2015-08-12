@@ -298,7 +298,7 @@ function Geometry(shape, color, start, symmetry) {
     };
 
     // draw method for objects
-    this.draw = function(draw) {
+    this.draw = function(offline) {
         if (!this.render) {
             return;
         }
@@ -721,7 +721,6 @@ function handleKeyDown(event){
     if (event.keyCode > 32 && event.keyCode < 41) {
         switch (event.keyCode) {
             case 33: // page up to zoom in
-                zoom -= 0.1;
                 if (zoom > 1.5) {
                     zoom -= 0.1;
                 }
@@ -795,4 +794,5 @@ function rePopulateShapeSelector() {
 function setPickMode() {
     pickMode = true;
     drawNew = false;
+    canvas.style.cursor = "default";
 }
