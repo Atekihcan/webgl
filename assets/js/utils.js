@@ -187,15 +187,13 @@ function setDefault(param, value) {
 }
 
 /* show/hide settings panel */
-function toggleControls() {
-    title = document.getElementById("controlPanelTitle");
-    control = document.getElementById("controlPanel");
-    if (title.innerHTML == "[-] Hide Settings") {
-        title.innerHTML = "[+] Show Settings";
+function toggleControls(id, target) {
+    title = document.getElementById(id);
+    control = document.getElementById(target);
+    if (control.style.display = "") {
         control.style.display = "none";
     }
     else {
-        title.innerHTML = "[-] Hide Settings";
         control.style.display = "";
     }
 }
