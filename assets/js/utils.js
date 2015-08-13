@@ -190,7 +190,7 @@ function setDefault(param, value) {
 function toggleControls(id, target) {
     title = document.getElementById(id);
     control = document.getElementById(target);
-    if (control.style.display = "") {
+    if (control.style.display == "") {
         control.style.display = "none";
     }
     else {

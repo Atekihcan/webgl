@@ -631,7 +631,7 @@ function enableFill(value) {
 
 function enableWireFrame(value) {
     if (drawNew) {
-        currentEnableWireframe = value;
+        currentEnableWireFrame = value;
     } else {
         if (currentObjectID != null) {
             objectsToDraw[currentObjectID].wireFrame = value;
@@ -781,8 +781,12 @@ function rePopulateShapeSelector() {
 }
 
 /**/
-function setPickMode() {
+function enablePicking() {
     pickMode = true;
     drawNew = false;
     canvas.style.cursor = "default";
+}
+
+function enableCameraMove() {
+    
 }

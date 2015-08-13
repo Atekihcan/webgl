@@ -21,6 +21,11 @@ blockquote{
     font-size: 1.2em;
 }
 
+/* override bootstrap defaults */
+.row{
+    padding: 3px 0px;
+}
+
 canvas{
     width: 100%;
     height: auto;
@@ -106,11 +111,21 @@ input[type="color"] {
 }
 
 .color-round {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border: 1px solid #000;
-    border-radius: 10px;
+    border-radius: 9px;
     overflow: hidden;
+    cursor: pointer;
+}
+
+.color-round-big {
+    width: 26px;
+    height: 26px;
+    border: 2px solid #000;
+    border-radius: 13px;
+    overflow: hidden;
+    cursor: pointer;
 }
 
 .slider-value {
@@ -136,6 +151,88 @@ input[type="color"] {
     }
 }
 
+/* checkbox slider */
+input[type=checkbox] {
+	visibility: hidden;
+}
+
+.checkBoxSlider {
+	width: 50px;
+	height: 16px;
+	background: #333;
+	margin: auto;
+    text-align: right;
+    margin-top: 2px;
+
+	-webkit-border-radius: 50px;
+	-moz-border-radius: 50px;
+	border-radius: 50px;
+	position: relative;
+
+	-webkit-box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,0.2);
+	-moz-box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,0.2);
+	box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,0.2);
+}
+
+.checkBoxSlider:after {
+	content: 'OFF';
+	color: #000;
+	position: absolute;
+    top: 0px;
+	right: 5px;
+	z-index: 0;
+	font-weight: bold;
+    font-size: 0.8em;
+	text-shadow: 1px 1px 0px rgba(255,255,255,.15);
+}
+
+.checkBoxSlider:before {
+	content: 'ON';
+	color: #00bf00;
+	position: absolute;
+	left: 5px;
+	z-index: 0;
+	font-weight: bold;
+    font-size: 0.8em;
+}
+
+.checkBoxSlider label {
+	display: block;
+	width: 24px;
+	height: 10px;
+
+	-webkit-border-radius: 50px;
+	-moz-border-radius: 50px;
+	border-radius: 50px;
+
+	-webkit-transition: all .4s ease;
+	-moz-transition: all .4s ease;
+	-o-transition: all .4s ease;
+	-ms-transition: all .4s ease;
+	transition: all .4s ease;
+	cursor: pointer;
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	z-index: 1;
+
+	-webkit-box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+	-moz-box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+	box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+	background: #fcfff4;
+
+	background: -webkit-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+	background: -moz-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+	background: -o-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+	background: -ms-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+	background: linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfff4', endColorstr='#b3bead',GradientType=0 );
+}
+
+.checkBoxSlider input[type=checkbox]:checked + label {
+	left: 22px;
+}
+
 /* page */
 .page-header{
     margin: 2px 0px;
@@ -157,7 +254,71 @@ input[type="color"] {
 }
 
 /* for landing page */
+/* control panel */
+.control-panel-group {
+    position: absolute;
+    z-index: 1;
+    overflow: hidden;
+    margin: 5px;
+}
 
+.control-panel-group-left {
+    left: 0;
+}
+
+.control-panel-group-right {
+    right: 0;
+}
+
+.control-panel {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: rgba(255, 255, 255, 0.5);
+    margin-top: 4px;
+    padding: 10px 0px;
+	border-radius: 5px;
+	box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
+}
+
+.control-panel-group-bottom {
+    text-align: center;
+    padding: 5px;
+    background-color: #ccc;
+	border-radius: 5px;
+	box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.4);
+}
+
+.control-panel-bottom {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: rgba(255, 255, 255, 0.3);
+    position: absolute;
+    top: -58px;
+    left: 0;
+    right: 0;
+    padding: 0px 5px;
+	border-radius: 5px;
+	box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
+}
+
+.control-panel-bottom  img{
+    width: 50px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.control-panel-bottom  img:hover{
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.panel-cell {
+    text-align: center;
+    padding: 0px 6.9%;
+}
+
+.control-panel-title {
+    cursor: pointer;
+    color: #333;
+}
 
 /* footer */
 .footer {
