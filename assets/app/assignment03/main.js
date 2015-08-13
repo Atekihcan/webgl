@@ -101,7 +101,7 @@ function initWebGL(shaderSources) {
     if (program != null) {
         gl.useProgram(program);
     }
-    
+
     // texture and framebuffer for offscreen rendering for object picking
     var texture = gl.createTexture();
     gl.bindTexture( gl.TEXTURE_2D, texture );
@@ -788,5 +788,5 @@ function enablePicking() {
 }
 
 function enableCameraMove() {
-    
+
 }

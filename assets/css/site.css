@@ -248,18 +248,18 @@ input[type=checkbox] {
     font-size: 1.0em;
     text-align: justify;
     hyphens: auto;
-    padding-top: 20px;
     -ms-hyphens: auto;
     -moz-hyphens: auto;
 }
 
 /* for landing page */
+
 /* control panel */
 .control-panel-group {
     position: absolute;
     z-index: 1;
     overflow: hidden;
-    margin: 5px;
+    margin-top: -30px;
 }
 
 .control-panel-group-left {
@@ -312,7 +312,7 @@ input[type=checkbox] {
 
 .panel-cell {
     text-align: center;
-    padding: 0px 6.9%;
+    padding: 0px 6%;
 }
 
 .control-panel-title {
