@@ -80,6 +80,9 @@ function initWebGL(shaderSources) {
     canvas.addEventListener("mousemove", getMouseMove, false);
     canvas.addEventListener("mouseup", getMouseUp, false);
     canvas.addEventListener("wheel", getMouseWheel, false);
+    canvas.addEventListener("touchstart", getTouchStart, false);
+    canvas.addEventListener("touchmove", getTouchMove, false);
+    canvas.addEventListener("touchend", getTouchEnd, false);
 
     gl = WebGLUtils.setupWebGL(canvas, {preserveDrawingBuffer: true});
     if (!gl) {
@@ -535,7 +538,7 @@ function getMouseUp(event) {
     }
 }
 
-/* mouse up event handler */
+/* mouse wheel event handler */
 function getMouseWheel(event) {
     if (event.deltaY > 0) {
         zoomin(false);
@@ -544,6 +547,79 @@ function getMouseWheel(event) {
     }
     changeCameraPosition();
     event.preventDefault();
+}
+
+/* touch start event handler */
+function getTouchStart(event) {
+    stopRender = false;
+    var rect = canvas.getBoundingClientRect();
+    var x = event.touches[0].pageX - rect.left,
+        y = event.touches[0].pageY - rect.top;
+    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+
+    if (mouseMode == "Select") {
+        pick(x, y);
+    }
+    if (mouseMode == "Move") {
+        lastPosition = [x, y];
+        if (browser.chrome || browser.safari) {
+            canvas.style.cursor = "-webkit-grabbing";
+        } else {
+            canvas.style.cursor = "grabbing";
+        }
+    }
+    if (mouseMode == "Draw") {
+        objectsToDraw.push(new Geometry(currentShape, currentColor, [clip[0], clip[1], 0.0], SHAPES[currentShape][1] || shiftDown));
+        // add new object to shape select list
+        rePopulateShapeSelector();
+        currentObjectID = objectsToDraw.length - 1;
+    }
+}
+
+/* touch move event handler */
+function getTouchMove(event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.touches[0].pageX - rect.left,
+        y = event.touches[0].pageY - rect.top;
+    var clip = vec2(-1 + 2 * x / canvas.scrollWidth, -1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight);
+
+    if (mouseMode == "Draw") {
+        if (!objectsToDraw[currentObjectID].render) {
+            objectsToDraw[currentObjectID].render = true;
+        }
+        objectsToDraw[currentObjectID].modifyShape(clip);
+    } else if (mouseMode == "Move" && typeof(lastPosition[0]) != 'undefined') {
+        var newPosition = [x, y];
+        var d = moveDirection(newPosition, lastPosition);
+        theta -= 1.0 * d[0];
+        phi -= 1.0 * d[1];
+        changeCameraPosition();
+        lastPosition = newPosition;
+    }
+    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
+    event.preventDefault();
+}
+
+/* touch end event handler */
+function getTouchEnd(event) {
+    if (mouseMode == "Draw") {
+        // delete the last object created just by click
+        if (currentObjectID != null && !objectsToDraw[currentObjectID].render) {
+            currentObjectID--;
+            objectsToDraw.pop();
+            rePopulateShapeSelector();
+        } else {
+            uiShapeSelector.selectedIndex = 0;
+            currentObjectID = null;
+        }
+    } else if (mouseMode == "Move") {
+        lastPosition = [];
+        if (browser.chrome || browser.safari) {
+            canvas.style.cursor = "-webkit-grab";
+        } else {
+            canvas.style.cursor = "grab";
+        }
+    }
 }
 
 /* set shape */
