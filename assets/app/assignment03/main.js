@@ -455,7 +455,7 @@ function pick(x, y) {
         var id = decodeColor(color);
         if (id >= 0 && id < objectsToDraw.length) {
             uiShapeSelector.selectedIndex = id + 1;
-            selectObject(id);
+            selectObject(id + 1);
             objectPanel.style.display = "";
         } else {
             uiShapeSelector.selectedIndex = 0;
@@ -548,13 +548,12 @@ function getMouseWheel(event) {
 
 /* set shape */
 function selectObject(value) {
-    if (value >= 0 && value < objectsToDraw.length) {
+    if (value > 0 && value <= objectsToDraw.length) {
         var temp;
-        drawNew = false;
         if (currentObjectID != null) {
             objectsToDraw[currentObjectID].selected = false;
         }
-        currentObjectID = value;
+        currentObjectID = value - 1;
         uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
         uiObjectLight.checked     = objectsToDraw[currentObjectID].lighting;
         uiObjectFill.checked      = objectsToDraw[currentObjectID].fill;
@@ -577,7 +576,7 @@ function selectObject(value) {
         objectsToDraw[currentObjectID].selected = true;
         canvas.style.cursor = "default";
     } else {
-        console.log("There is no item at index " + value);
+        console.log("There is no object at index " + value);
     }
 }
 
