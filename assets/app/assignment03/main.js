@@ -1,10 +1,8 @@
 "use strict";
 
 /* global variables */
-var canvas, gl, program;
+var canvas, gl, program, pickBuf, browser;
 var shaders = ["shader.vert", "shader.frag"];
-var pickMode = false;
-var pickBuf;
 var stopRender = false;
 
 var SHAPES = {
@@ -13,8 +11,8 @@ var SHAPES = {
     1: ["xAxis", 0],
     2: ["yAxis", 0],
     3: ["zAxis", 0],
-    4: ["Cuboid", 0],
-    5: ["Spheroid", 0],
+    4: ["Cube", 0],
+    5: ["Sphere", 0],
     6: ["Cylinder", 0],
     7: ["Cone", 0]
 };
@@ -25,7 +23,11 @@ var shapeBufs = [];
 var objectsToDraw = [];
 var currentShape  = 5;
 var currentObjectID = null;
-var drawNew = true;
+
+/* mouse controls */
+var mouseMode = "Draw";
+var mouseModeInfo;
+var lastPosition = [];
 var shiftDown = false;
 var isMouseDown = false;
 
@@ -39,7 +41,7 @@ var currentEnableFill  = true;
 var currentEnableWireFrame = false;
 
 /* object ui parameters */
-var uiShapeSelector, uiObjectCol;
+var objectPanel, uiShapeSelector, uiObjectCol;
 var uiObjectPos = [], uiObjectPosVal = [];
 var uiObjectLight, uiObjectFill, uiObjectWireFrame;
 
@@ -67,6 +69,13 @@ var VERT_STRIDE  = sizeof['vec3'] + sizeof['vec3'];
 /* initialize WebGL context */
 function initWebGL(shaderSources) {
     canvas = document.getElementById("gl-canvas");
+    // for small screen devices use a square canvas
+    var canvas_xs = document.getElementById("gl-canvas-xs");
+    if (window.innerWidth < 768) {
+        canvas.style.display = "none";
+        canvas = canvas_xs;
+        canvas.style.display = "";
+    }
     canvas.addEventListener("mousedown", getMouseDown, false);
     canvas.addEventListener("mousemove", getMouseMove, false);
     canvas.addEventListener("mouseup", getMouseUp, false);
@@ -79,7 +88,7 @@ function initWebGL(shaderSources) {
     }
     // set the canvas
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.3, 0.3, 0.3, 1.0);
+    gl.clearColor(0.1, 0.1, 0.2, 1.0);
     gl.enable(gl.DEPTH_TEST);
 
     // set projection and model-view matrix
@@ -202,11 +211,14 @@ function renderOffline() {
 
 /* start the application */
 window.onload = function init() {
+    browser = checkBrowserType();
     asyncLoadShaders("assignment03", shaders, initWebGL);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
+    mouseModeInfo      = document.getElementById('mouseMode');
     pointLightOn       = document.getElementById('pointLight');
     ambientLightOn     = document.getElementById('ambientLight');
+    objectPanel        = document.getElementById('objectPanel');
     uiObjectCol        = document.getElementById('objColUI');
     uiShapeSelector    = document.getElementById('shapeSelector');
     uiObjectLight      = document.getElementById('uiObjectLight');
@@ -253,10 +265,10 @@ function Geometry(shape, color, start, symmetry) {
     this.translate         = start;
     this.shape             = shape;
     this.materialColor     = color;
-    this.lighting          = true;
+    this.lighting          = currentEnableLight;
     this.symmetry          = symmetry;
-    this.fill              = true;
-    this.wireFrame         = false;
+    this.fill              = currentEnableFill;
+    this.wireFrame         = currentEnableWireFrame;
     this.selected          = false;
     this.render            = false;
     this.buffer = {
@@ -408,11 +420,6 @@ function changeCameraPosition() {
     cameraMatrix = lookAt(eye, at , up);
 }
 
-/* return an approximate complimentary color */
-function getComplement(c) {
-    return [1.0 - c[0], 1.0 - c[1], 1.0 - c[2], c[3]];
-}
-
 /***************************************************
  *                    UI handlers                  *
  ***************************************************/
@@ -426,12 +433,10 @@ function mousePos(e) {
 
 /* get mouse coordinate in terms of clip coordinate */
 function mouseToClip(e) {
-    var rect = canvas.getBoundingClientRect();
-    var x = e.clientX - rect.left,
-        y = e.clientY - rect.top;
+    var click = mousePos(e);
     return vec2(
-        (-1 + 2 * x / canvas.scrollWidth) * zoom,
-        (-1 + 2 * (canvas.scrollHeight - y) / canvas.scrollHeight) * zoom / 2.0
+        (-1 + 2 * click[0] / canvas.scrollWidth) * zoom,
+        (-1 + 2 * (canvas.scrollHeight - click[1]) / canvas.scrollHeight) * zoom / 2.0
     );
 }
 
@@ -449,8 +454,13 @@ function pick(x, y) {
     if (color[3] > 0) {
         var id = decodeColor(color);
         if (id >= 0 && id < objectsToDraw.length) {
-            uiShapeSelector.selectedIndex = id;
+            uiShapeSelector.selectedIndex = id + 1;
             selectObject(id);
+            objectPanel.style.display = "";
+        } else {
+            uiShapeSelector.selectedIndex = 0;
+            currentObjectID = null;
+            objectPanel.style.display = "none";
         }
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -461,71 +471,79 @@ function getMouseDown(event) {
     isMouseDown = true;
     stopRender = false;
     var clip = mouseToClip(event);
-    if (pickMode) {
+    if (mouseMode == "Select") {
         var clik = mousePos(event);
         pick(clik[0], clik[1]);
     }
-    if (drawNew) {
+    if (mouseMode == "Move") {
+        lastPosition = mousePos(event);
+        if (browser.chrome || browser.safari) {
+            canvas.style.cursor = "-webkit-grabbing";
+        } else {
+            canvas.style.cursor = "grabbing";
+        }
+    }
+    if (mouseMode == "Draw") {
         objectsToDraw.push(new Geometry(currentShape, currentColor, [clip[0], clip[1], 0.0], SHAPES[currentShape][1] || shiftDown));
         // add new object to shape select list
         rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
     }
-    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
 }
 
 /* mouse move event handler */
 function getMouseMove(event) {
+    var clip = mouseToClip(event);
     if (isMouseDown) {
-        var clip = mouseToClip(event);
-        if (drawNew) {
+        if (mouseMode == "Draw") {
             if (!objectsToDraw[currentObjectID].render) {
                 objectsToDraw[currentObjectID].render = true;
             }
             objectsToDraw[currentObjectID].modifyShape(clip);
+        } else if (mouseMode == "Move" && typeof(lastPosition[0]) != 'undefined') {
+            var newPosition = mousePos(event);
+            var d = moveDirection(newPosition, lastPosition);
+            theta -= 1.0 * d[0];
+            phi -= 1.0 * d[1];
+            changeCameraPosition();
+            lastPosition = newPosition;
         }
-        document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
     }
-    var stretch = [canvas.width / canvas.scrollWidth, canvas.height / canvas.scrollHeight];
-    var pos = mousePos(event);
-    //console.log(canvas.scrollWidth, canvas.scrollHeight);
-    document.getElementById("info").innerHTML = parseInt(pos[0] * stretch[0]) + ", " + parseInt(pos[1] * stretch[1]);
+    document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
 }
 
 /* mouse up event handler */
 function getMouseUp(event) {
     isMouseDown = false;
-    if (currentObjectID != null && !objectsToDraw[currentObjectID].render) {
-        currentObjectID--;
-        objectsToDraw.pop();
-        rePopulateShapeSelector();
+    if (mouseMode == "Draw") {
+        // delete the last object created just by click
+        if (currentObjectID != null && !objectsToDraw[currentObjectID].render) {
+            currentObjectID--;
+            objectsToDraw.pop();
+            rePopulateShapeSelector();
+        } else {
+            uiShapeSelector.selectedIndex = 0;
+            currentObjectID = null;
+        }
+    } else if (mouseMode == "Move") {
+        lastPosition = [];
+        if (browser.chrome || browser.safari) {
+            canvas.style.cursor = "-webkit-grab";
+        } else {
+            canvas.style.cursor = "grab";
+        }
     }
-    //var clip = mouseToClip(event);
-    //document.getElementById("info").innerHTML = Math.round(clip[0] * 100) / 100 + ", " + Math.round(clip[1] * 100) / 100;
 }
 
 /* mouse up event handler */
 function getMouseWheel(event) {
     if (event.deltaY > 0) {
-        if (zoom < 5.0) {
-            zoom += 0.1;
-        }
-        canvas.style.cursor = "zoom-out";
+        zoomin(false);
     } else {
-        if (zoom > 1.5) {
-            zoom -= 0.1;
-        }
-        canvas.style.cursor = "zoom-in";
+        zoomin(true);
     }
     changeCameraPosition();
     event.preventDefault();
-    setTimeout(function() {
-        if (drawNew) {
-            canvas.style.cursor = "crosshair";
-        } else {
-            canvas.style.cursor = "default";
-        }
-    }, 500);
 }
 
 /* set shape */
@@ -559,7 +577,7 @@ function selectObject(value) {
         objectsToDraw[currentObjectID].selected = true;
         canvas.style.cursor = "default";
     } else {
-        console.log("Drawing " + value + " is not supported");
+        console.log("There is no item at index " + value);
     }
 }
 
@@ -567,75 +585,57 @@ function selectObject(value) {
 function setColor(value) {
     var rgb = hexToRGB(value);
     currentColor = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
-    if (!drawNew && currentObjectID != null) {
+    if (currentObjectID != null) {
         objectsToDraw[currentObjectID].materialColor = currentColor;
     }
 }
 
 /* set scale */
 function setScale(index, value) {
-    if (drawNew) {
-        currentScale[index] = value;
-    } else {
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].scale[index] = value;
-        }
-    }
+    currentScale[index] = value;
     uiObjectPosVal[index * 3].innerHTML = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].scale[index] = value;
+    }
 }
 
 /* set rotation */
 function setRotation(index, value) {
-    if (drawNew) {
-        currentRotate[index] = value;
-    } else {
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].rotate[index] = value;
-        }
-    }
+    currentRotate[index] = value;
     uiObjectPosVal[index * 3 + 1].innerHTML = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].rotate[index] = value;
+    }
 }
 
 /* set translation */
 function setTranslation(index, value) {
-    if (drawNew) {
-        currentTranslate[index] = value;
-    } else {
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].translate[index] = value;
-        }
-    }
+    currentTranslate[index] = value;
     uiObjectPosVal[index * 3 + 2].innerHTML = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].translate[index] = value;
+    }
 }
 
 /* lighting/fill/wireframe checkboxes */
 function enableLight(value) {
-    if (drawNew) {
-        currentEnableLight = value;
-    } else {
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].lighting = value;
-        }
+    currentEnableLight = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].lighting = value;
     }
 }
 
 function enableFill(value) {
-    if (drawNew) {
-        currentEnableFill = value;
-    } else {
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].fill = value;
-        }
+    currentEnableFill = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].fill = value;
     }
 }
 
 function enableWireFrame(value) {
-    if (drawNew) {
-        currentEnableWireFrame = value;
-    } else {
-        if (currentObjectID != null) {
-            objectsToDraw[currentObjectID].wireFrame = value;
-        }
+    currentEnableWireFrame = value;
+    if (currentObjectID != null) {
+        objectsToDraw[currentObjectID].wireFrame = value;
     }
 }
 
@@ -643,18 +643,21 @@ function enableWireFrame(value) {
 function deleteObject() {
     objectsToDraw.splice(currentObjectID, 1);
     rePopulateShapeSelector();
+    uiShapeSelector.selectedIndex = 0;
     currentObjectID = null;
 }
 
 /* select shape for new object */
 function selectShape(shapeType) {
-    pickMode = false;
-    drawNew = true;
+    mouseMode = "Draw";
+    mouseModeInfo.innerHTML = "DRAW";
     if (currentObjectID != null) {
         objectsToDraw[currentObjectID].selected = false;
     }
     currentShape = shapeType;
     canvas.style.cursor = "crosshair";
+    uiShapeSelector.selectedIndex = 0;
+    currentObjectID = null;
     /*
     // disable drawing new object.. may be later?
     var center = [uiObjectPos[2].value, uiObjectPos[5].value, uiObjectPos[8].value];
@@ -684,7 +687,9 @@ function resetAxes() {
 /* clear canvas */
 function resetCanvas() {
     objectsToDraw = [];
+    uiShapeSelector.selectedIndex = 0;
     currentObjectID = null;
+    rePopulateShapeSelector();
 }
 
 /* save canvas as image */
@@ -702,6 +707,9 @@ function handleKeyDown(event){
         case 82: // R key to reset the axes rotation
             resetAxes();
             break;
+        case 72: // H key show/hide help
+            toggleControls('helpPanel');
+            break;
         case 46: // delete key to delete object
             deleteObject();
             event.preventDefault();
@@ -711,14 +719,10 @@ function handleKeyDown(event){
     if (event.keyCode > 32 && event.keyCode < 41) {
         switch (event.keyCode) {
             case 33: // page up to zoom in
-                if (zoom > 1.5) {
-                    zoom -= 0.1;
-                }
+                zoomin(true);
                 break;
             case 34: // page down to zoom out
-                if (zoom < 5.0) {
-                    zoom += 0.1;
-                }
+                zoomin(false);
                 break;
             case 37: // left
                 theta -= 1.0;
@@ -764,13 +768,11 @@ function setPointLightPos(index, value) {
 /* populate shape selector */
 function rePopulateShapeSelector() {
     uiShapeSelector.options.length = 0;
-    var i = 0;
-    if (objectsToDraw.length < 1) {
-        var option = document.createElement("option");
-        option.text = "Draw an Object";
-        option.value = 0;
-        uiShapeSelector.appendChild(option);
-    }
+    var i = 1;
+    var option = document.createElement("option");
+    option.text = "Select Object";
+    option.value = 0;
+    uiShapeSelector.appendChild(option);
     objectsToDraw.forEach(function(object) {
         var option = document.createElement("option");
         option.text = "Object_" + i + " (" + SHAPES[object.shape][0] + ")";
@@ -782,11 +784,39 @@ function rePopulateShapeSelector() {
 
 /**/
 function enablePicking() {
-    pickMode = true;
-    drawNew = false;
+    mouseMode = "Select";
+    mouseModeInfo.innerHTML = "SELECT";
     canvas.style.cursor = "default";
 }
 
 function enableCameraMove() {
+    mouseMode = "Move";
+    mouseModeInfo.innerHTML = "CAMERA";
+    if (browser.chrome || browser.safari) {
+        canvas.style.cursor = "-webkit-grab";
+    } else {
+        canvas.style.cursor = "grab";
+    }
+}
 
+/* camera movements */
+function zoomin(flag) {
+    if (flag) {
+        if (zoom > 1.5) {
+            zoom -= 0.1;
+        }
+        canvas.style.cursor = "zoom-in";
+    } else {
+        if (zoom < 5.0) {
+            zoom += 0.1;
+        }
+        canvas.style.cursor = "zoom-out";
+    }
+    setTimeout(function() {
+        if (mouseMode == "Draw") {
+            canvas.style.cursor = "crosshair";
+        } else {
+            canvas.style.cursor = "default";
+        }
+    }, 500);
 }

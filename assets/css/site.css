@@ -31,6 +31,7 @@ canvas{
     height: auto;
     border: 1px solid #ccc;
     border-radius: 5px;
+    cursor: crosshair;
 }
 
 button {
@@ -310,6 +311,24 @@ input[type=checkbox] {
     background-color: rgba(255, 255, 255, 0.4);
 }
 
+.help-panel {
+    position: absolute;
+    z-index: 1;
+    overflow: hidden;
+    margin-top: 20px;
+    left: 0;
+}
+
+.help-panel *{
+    padding-bottom: 0px;
+}
+
+@media (max-width: 992px) {
+    .hide-for-sm {
+        display: none;
+    }
+}
+
 .panel-cell {
     text-align: center;
     padding: 0px 6%;
@@ -317,7 +336,22 @@ input[type=checkbox] {
 
 .control-panel-title {
     cursor: pointer;
-    color: #333;
+    color: #666;
+}
+
+.control-panel-title:hover{
+    color: #222;
+}
+
+.mouse-mode {
+    position: absolute;
+    z-index: 1;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 2px;
+    margin: -30px 0px 0px 0px;
+    border-radius: 5px;
 }
 
 /* footer */
