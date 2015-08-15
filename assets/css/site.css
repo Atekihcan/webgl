@@ -315,7 +315,7 @@ input[type=checkbox] {
     position: absolute;
     z-index: 1;
     overflow: hidden;
-    margin-top: 20px;
+    margin-top: 10px;
     left: 0;
 }
 
@@ -341,6 +341,18 @@ input[type=checkbox] {
 
 .control-panel-title:hover{
     color: #222;
+}
+
+.span-button {
+    color: #222;
+    border: 1px solid;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.span-button:hover {
+    color: #000;
+    background-color: #666;
 }
 
 .mouse-mode {
