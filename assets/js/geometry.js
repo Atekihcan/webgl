@@ -67,6 +67,120 @@ function drawSphere(numDivision, radius) {
 /***************************************************
  *         functions to create vertex data         *
  ***************************************************/
+/* axis vertex data */
+function getAxesVertexData(index, start, end) {
+    var posEnd = [0.0, 0.0, 0.0];
+    posEnd[index - 1] = end;
+
+    var pointsArray = [];
+
+    // positive axis - solid
+    pointsArray.push([0.0, 0.0, 0.0]);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    pointsArray.push(posEnd);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    // negative axis - dotted
+    for (var i = 0; i < 100; i++) {
+        var negEnd = [0.0, 0.0, 0.0];
+        negEnd[index - 1] = i * start / 100;
+        pointsArray.push(negEnd);
+        pointsArray.push([0.0, 0.0, 0.0]);
+    }
+    return pointsArray;
+}
+
+/* grid vertex data */
+function getGridVertexData(plane, start, end, divs) {
+    var pointsArray = [];
+    var a = [parseInt(start[0] * divs), parseInt(start[1] * divs)],
+        b = [parseInt(end[0] * divs), parseInt(end[1] * divs)],
+        axis_1, axis_2;
+    
+    if (plane[0]) {
+        axis_1 = 0;
+        if (plane[1]) {
+            axis_2 = 1;
+        } else {
+            axis_2 = 2;
+        }
+    } else {
+        axis_1 = 1;
+        axis_2 = 2;
+    }
+    
+    for (var i = a[0]; i <= b[0]; i++) {
+        var tmp_1 = [0.0, 0.0, 0.0];
+        tmp_1[axis_1] = i / divs;
+        tmp_1[axis_2] = start[1];
+        pointsArray.push(tmp_1);
+        pointsArray.push([0.0, 0.0, 0.0]);
+        var tmp_2 = [0.0, 0.0, 0.0];
+        tmp_2[axis_1] = i / divs;
+        tmp_2[axis_2] = end[1];
+        pointsArray.push(tmp_2);
+        pointsArray.push([0.0, 0.0, 0.0]);
+    }
+    for (var i = a[1]; i <= b[1]; i++) {
+        var tmp_1 = [0.0, 0.0, 0.0];
+        tmp_1[axis_1] = start[0];
+        tmp_1[axis_2] = i / divs;
+        pointsArray.push(tmp_1);
+        pointsArray.push([0.0, 0.0, 0.0]);
+        var tmp_2 = [0.0, 0.0, 0.0];
+        tmp_2[axis_1] = end[0];
+        tmp_2[axis_2] = i / divs;
+        pointsArray.push(tmp_2);
+        pointsArray.push([0.0, 0.0, 0.0]);
+    }
+    return pointsArray;
+}
+
+/* plane vertex data */
+function getPlaneVertexData(plane, start, end) {
+    var pointsArray = [];
+    var axis_1, axis_2;
+    
+    if (plane[0]) {
+        axis_1 = 0;
+        if (plane[1]) {
+            axis_2 = 1;
+        } else {
+            axis_2 = 2;
+        }
+    } else {
+        axis_1 = 1;
+        axis_2 = 2;
+    }
+
+    var tmp_1 = [0.0, 0.0, 0.0],
+        tmp_2 = [0.0, 0.0, 0.0],
+        tmp_3 = [0.0, 0.0, 0.0],
+        tmp_4 = [0.0, 0.0, 0.0];
+
+    tmp_1[axis_1] = start[0];
+    tmp_1[axis_2] = start[1];
+    pointsArray.push(tmp_1);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    tmp_2[axis_1] = start[0];
+    tmp_2[axis_2] = end[1];
+    pointsArray.push(tmp_2);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    tmp_3[axis_1] = end[0];
+    tmp_3[axis_2] = end[1];
+    pointsArray.push(tmp_3);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    pointsArray.push(tmp_1);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    pointsArray.push(tmp_3);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    tmp_4[axis_1] = end[0];
+    tmp_4[axis_2] = start[1];
+    pointsArray.push(tmp_4);
+    pointsArray.push([0.0, 0.0, 0.0]);
+
+    return pointsArray;
+}
+
 /* function for getting cube vertex data */
 function getCubeVertexData() {
     return [

@@ -242,7 +242,7 @@ window.onload = function init() {
     //console.log(shapeBufs);
     AXES.push(new Geometry(1, [1.0, 0.0, 0.0, 1.0]));
     AXES.push(new Geometry(2, [0.0, 1.0, 0.0, 1.0]));
-    AXES.push(new Geometry(3, [0.0, 0.0, 1.0, 1.0]));
+    AXES.push(new Geometry(3, [0.5, 0.5, 0.5, 1.0]));
     LIGHTS.push(new Geometry(0, [0.0, 0.0, 0.0, 1.0], pointLightPos));
     //debug
     // objectsToDraw.push(new Geometry(6, currentColor, [0.0, 0.0, 0.0], false));
@@ -370,23 +370,10 @@ function getPrimitiveVertexData(index) {
         // axes
         case 1:
         case 2:
+            v = getAxesVertexData(index, -zoom, zoom);
+            break;
         case 3:
-            var a = -zoom, b = zoom;
-            var posEnd = [0.0, 0.0, 0.0];
-            posEnd[index - 1] = b;
-
-            // positive axis - solid
-            v.push([0.0, 0.0, 0.0]);
-            v.push([0.0, 0.0, 0.0]);
-            v.push(posEnd);
-            v.push([0.0, 0.0, 0.0]);
-            // negative axis - dotted
-            for (var i = 0; i < 100; i++) {
-                var negEnd = [0.0, 0.0, 0.0];
-                negEnd[index - 1] = i * a / 100;
-                v.push(negEnd);
-                v.push([0.0, 0.0, 0.0]);
-            }
+            v = getGridVertexData([1, 0, 1], [-zoom, -zoom], [zoom, zoom], 5);
             break;
         // cube
         case 4:
