@@ -6,22 +6,21 @@ var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false;
 
 var SHAPES = {
-    // shape id: [shape name, number of vertices]
-    0: ["light", { vbo: null, numVert: 0 }],
-    1: ["xAxis", { vbo: null, numVert: 0 }],
-    2: ["yAxis", { vbo: null, numVert: 0 }],
-    3: ["zAxis", { vbo: null, numVert: 0 }],
-    4: ["Cube", { vbo: null, numVert: 0 }],
-    5: ["Sphere", { vbo: null, numVert: 0 }],
-    6: ["Cylinder", { vbo: null, numVert: 0 }],
-    7: ["Cone", { vbo: null, numVert: 0 }]
+    // shape name: {id, vbo, number of vertices, details}
+    "Point": { id: 0, vbo: null, numVert: 0, details: 0},
+    "Axis": { id: 1, vbo: null, numVert: 0, details: 100},
+    "Grid": { id: 3, vbo: null, numVert: 0, details: 10},
+    "Cube": { id: 5, vbo: null, numVert: 0, details: 0},
+    "Sphere": { id: 6, vbo: null, numVert: 0, details: 3},
+    "Cylinder": { id: 7, vbo: null, numVert: 0, details: 50},
+    "Cone": { id: 8, vbo: null, numVert: 0, details: 50}
 };
 
 var AXES = [];
 var LIGHTS = [];
 var shapeBufs = [];
 var objectsToDraw = [];
-var currentShape  = 5;
+var currentShape  = "Sphere";
 var currentObjectID = null;
 
 /* mouse controls */
@@ -99,11 +98,12 @@ function initWebGL(shaderSources) {
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
     for (var key in SHAPES) {
-        var i = parseInt(key);
-        SHAPES[i][1].vbo = gl.createBuffer();
-        SHAPES[i][1].program = program;
-        gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[i][1].vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(getPrimitiveVertexData(i)), gl.STATIC_DRAW);
+        SHAPES[key].vbo = gl.createBuffer();
+        SHAPES[key].program = program;
+        gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].vbo);
+        var v = getPrimitiveVertexData(SHAPES[key].id, SHAPES[key].details);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(v), gl.STATIC_DRAW);
+        SHAPES[key].numVert = v.length / 2;
     }
 
     // texture and framebuffer for offscreen rendering for object picking
@@ -238,17 +238,12 @@ window.onload = function init() {
         uiPointLightPos.push(document.getElementById('uiPointLightPos_' + i));
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
-
-    AXES.push(new Geometry(1, SHAPES[1][1], { materialColor: [1.0, 0.0, 0.0, 1.0] }));
-    AXES.push(new Geometry(2, SHAPES[2][1], { materialColor: [0.0, 1.0, 0.0, 1.0] }));
-    AXES.push(new Geometry(3, SHAPES[3][1], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0] }));
-    LIGHTS.push(new Geometry(0, SHAPES[0][1], { materialColor: [0.0, 0.0, 0.0, 1.0], center: pointLightPos }));
-    //debug
-    // objectsToDraw.push(new Geometry(5, SHAPES[5][1], { materialColor: [1.0, 0.0, 0.0, 1.0], center: [0.5, 0.5, 0.0], lighting: true }));
-    // objectsToDraw[objectsToDraw.length - 1].modifyShape([0.75, 0.75]);
-    // objectsToDraw.push(new Geometry(4, currentColor, [0.0, 0.0, -1.0], true));
-    // objectsToDraw[objectsToDraw.length - 1].modifyShape([0.25, 0.25]);
-    // rePopulateShapeSelector();
+        SHAPES[key].vbo = gl.createBuffer();
+        SHAPES[key].program = program;
+        gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].vbo);
+        var v = getPrimitiveVertexData(SHAPES[key].id, SHAPES[key].details);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(v), gl.STATIC_DRAW);
+        SHAPES[key].numVert = v.length / 2;
     render();
 };
 
@@ -263,45 +258,6 @@ function changeCameraPosition() {
         zoom * Math.cos(radians(theta))
     );
     cameraMatrix = lookAt(eye, at , up);
-}
-
-/* return vertex data for primitive object */
-function getPrimitiveVertexData(index) {
-    var v = [];
-    switch(index) {
-        // lights
-        case 0:
-            v.push([0.0, 0.0, 0.0]);
-            v.push([0.0, 0.0, 0.0]);
-            break;
-        // axes
-        case 1:
-        case 2:
-            v = getAxesVertexData(index, -zoom, zoom);
-            break;
-        case 3:
-            v = getGridVertexData([-zoom, -zoom], [zoom, zoom], 5);
-            break;
-        // cube
-        case 4:
-            v = getCubeVertexData();
-            break;
-        case 5:
-            v = getSphereVertexData();
-            break;
-        case 6:
-            v = getCylinderVertexData();
-            break;
-        case 7:
-            v = getConeVertexData();
-            break;
-        default:
-            console.error("shape " + SHAPES[index][0] + " is not supported");
-            break;
-    }
-
-    SHAPES[index][1].numVert = v.length / 2;
-    return v;
 }
 
 /***************************************************
@@ -368,7 +324,7 @@ function getMouseDown(event) {
         }
     }
     if (mouseMode == "Draw") {
-        objectsToDraw.push(new Geometry(currentShape, SHAPES[currentShape][1], { center: [clip[0], clip[1], 0.0], lighting: true, render: false }));
+        objectsToDraw.push(new Geometry(SHAPES[currentShape], { center: [clip[0], clip[1], 0.0], lighting: true, render: false }));
         // add new object to shape select list
         rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
@@ -450,7 +406,7 @@ function getTouchStart(event) {
         }
     }
     if (mouseMode == "Draw") {
-        objectsToDraw.push(new Geometry(currentShape, SHAPES[currentShape][1], { center: [clip[0], clip[1], 0.0], lighting: true, render: false }));
+        objectsToDraw.push(new Geometry(SHAPES[currentShape], { center: [clip[0], clip[1], 0.0], lighting: true, render: false }));
         // add new object to shape select list
         rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
@@ -712,8 +668,14 @@ function rePopulateShapeSelector() {
     option.value = 0;
     uiShapeSelector.appendChild(option);
     objectsToDraw.forEach(function(object) {
+        var shapeType = "";
+        for (var key in SHAPES) {
+            if (SHAPES[key].id == object.shape) {
+                shapeType = key;
+            }
+        }
         var option = document.createElement("option");
-        option.text = "Object_" + i + " (" + SHAPES[object.shape][0] + ")";
+        option.text = "Object_" + i + " (" + shapeType + ")";
         option.value = i;
         uiShapeSelector.appendChild(option);
         i++;

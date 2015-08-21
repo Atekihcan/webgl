@@ -68,31 +68,39 @@ function drawSphere(numDivision, radius) {
  *         functions to create vertex data         *
  ***************************************************/
 /* axis vertex data */
-function getAxesVertexData(index, start, end) {
-    var posEnd = [0.0, 0.0, 0.0];
-    posEnd[index - 1] = end;
-
+function getAxesVertexData(numDivs) {
     var pointsArray = [];
 
     // positive axis - solid
     pointsArray.push([0.0, 0.0, 0.0]);
     pointsArray.push([0.0, 0.0, 0.0]);
-    pointsArray.push(posEnd);
+    pointsArray.push([1.0, 0.0, 0.0]);
     pointsArray.push([0.0, 0.0, 0.0]);
     // negative axis - dotted
-    for (var i = 0; i < 100; i++) {
-        var negEnd = [0.0, 0.0, 0.0];
-        negEnd[index - 1] = i * start / 100;
-        pointsArray.push(negEnd);
+    for (var i = 0; i < numDivs; i++) {
+        pointsArray.push([i * -1.0 / numDivs, 0.0, 0.0]);
         pointsArray.push([0.0, 0.0, 0.0]);
     }
     return pointsArray;
 }
 
-/* grid vertex data */
-function getGridVertexData(start, end, divs) {
+/* line vertex data */
+function getLineVertexData() {
     var pointsArray = [];
-    var a = [parseInt(start[0] * divs), parseInt(start[1] * divs)],
+
+    // positive axis - solid
+    pointsArray.push([0.0, 0.0, 0.0]);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    pointsArray.push([1.0, 0.0, 0.0]);
+    pointsArray.push([0.0, 0.0, 0.0]);
+    return pointsArray;
+}
+
+/* grid vertex data */
+function getGridVertexData(divs) {
+    var pointsArray = [];
+    var start = [-1.0, -1.0], end = [1.0, 1.0], 
+        a = [parseInt(start[0] * divs), parseInt(start[1] * divs)],
         b = [parseInt(end[0] * divs), parseInt(end[1] * divs)];
     
     for (var i = a[0]; i <= b[0]; i++) {
@@ -111,49 +119,19 @@ function getGridVertexData(start, end, divs) {
     return pointsArray;
 }
 
-/* plane vertex data */
-function getPlaneVertexData(plane, start, end) {
-    var pointsArray = [];
-    var axis_1, axis_2;
-    
-    if (plane[0]) {
-        axis_1 = 0;
-        if (plane[1]) {
-            axis_2 = 1;
-        } else {
-            axis_2 = 2;
-        }
-    } else {
-        axis_1 = 1;
-        axis_2 = 2;
+/* polygon vertex data */
+function getPolygonVertexData(numDivs) {
+    pointsArray = [];
+    var v = createPolygonFan([0.0, 0.0, 0.0], 1.0, numDivs);
+    // base
+    for (var i = 1; i <= numDivs; i++) {
+        pointsArray.push(v[0]);
+        pointsArray.push([0.0, 0.0, 1.0]);
+        pointsArray.push(v[i]);
+        pointsArray.push([0.0, 0.0, 1.0]);
+        pointsArray.push(v[i + 1]);
+        pointsArray.push([0.0, 0.0, 1.0]);
     }
-
-    var tmp_1 = [0.0, 0.0, 0.0],
-        tmp_2 = [0.0, 0.0, 0.0],
-        tmp_3 = [0.0, 0.0, 0.0],
-        tmp_4 = [0.0, 0.0, 0.0];
-
-    tmp_1[axis_1] = start[0];
-    tmp_1[axis_2] = start[1];
-    pointsArray.push(tmp_1);
-    pointsArray.push([0.0, 0.0, 0.0]);
-    tmp_2[axis_1] = start[0];
-    tmp_2[axis_2] = end[1];
-    pointsArray.push(tmp_2);
-    pointsArray.push([0.0, 0.0, 0.0]);
-    tmp_3[axis_1] = end[0];
-    tmp_3[axis_2] = end[1];
-    pointsArray.push(tmp_3);
-    pointsArray.push([0.0, 0.0, 0.0]);
-    pointsArray.push(tmp_1);
-    pointsArray.push([0.0, 0.0, 0.0]);
-    pointsArray.push(tmp_3);
-    pointsArray.push([0.0, 0.0, 0.0]);
-    tmp_4[axis_1] = end[0];
-    tmp_4[axis_2] = start[1];
-    pointsArray.push(tmp_4);
-    pointsArray.push([0.0, 0.0, 0.0]);
-
     return pointsArray;
 }
 
@@ -182,20 +160,19 @@ function getCubeVertexData() {
 }
 
 /* function for getting sphere vertex data */
-function getSphereVertexData() {
+function getSphereVertexData(numDivs) {
     pointsArray = [];
-    drawSphere(3, 1.0);
+    drawSphere(numDivs, 1.0);
     return pointsArray;
 }
 
 /* function for getting cylinder vertex data */
-function getCylinderVertexData() {
+function getCylinderVertexData(numDivs) {
     pointsArray = [];
-    var n = 50;
-    var v_front = createPolygonFan([0.0, 0.0, +1.0], 1.0, n);
-    var v_back  = createPolygonFan([0.0, 0.0, -1.0], 1.0, n);
+    var v_front = createPolygonFan([0.0, 0.0, +1.0], 1.0, numDivs);
+    var v_back  = createPolygonFan([0.0, 0.0, -1.0], 1.0, numDivs);
     // front face
-    for (var i = 1; i <= n; i++) {
+    for (var i = 1; i <= numDivs; i++) {
         pointsArray.push(v_front[0]);
         pointsArray.push([0.0, 0.0, +1.0]);
         pointsArray.push(v_front[i]);
@@ -205,7 +182,7 @@ function getCylinderVertexData() {
     }
 
     // body
-    for (var i = 1; i <= n; i++) {
+    for (var i = 1; i <= numDivs; i++) {
         // triangle strip 1
         pointsArray.push(v_front[i]);
         pointsArray.push(v_front[i]);
@@ -223,7 +200,7 @@ function getCylinderVertexData() {
     }
 
     // back face
-    for (var i = 1; i <= n; i++) {
+    for (var i = 1; i <= numDivs; i++) {
         pointsArray.push(v_back[0]);
         pointsArray.push([0.0, 0.0, -1.0]);
         pointsArray.push(v_back[i]);
@@ -235,13 +212,12 @@ function getCylinderVertexData() {
 }
 
 /* function for getting cone vertex data */
-function getConeVertexData() {
+function getConeVertexData(numDivs) {
     pointsArray = [];
-    var n = 50;
     var tip = [0.0, 0.0, +1.0];
-    var v_base = createPolygonFan([0.0, 0.0, -1.0], 1.0, n);
+    var v_base = createPolygonFan([0.0, 0.0, -1.0], 1.0, numDivs);
     // base
-    for (var i = 1; i <= n; i++) {
+    for (var i = 1; i <= numDivs; i++) {
         pointsArray.push(v_base[0]);
         pointsArray.push([0.0, 0.0, -1.0]);
         pointsArray.push(v_base[i]);
@@ -251,7 +227,7 @@ function getConeVertexData() {
     }
 
     // body
-    for (var i = 1; i <= n; i++) {
+    for (var i = 1; i <= numDivs; i++) {
         // triangle strip 1
         var normal = getSurfaceNormal(tip, v_base[i], v_base[i + 1]);
         pointsArray.push(tip);
@@ -262,6 +238,48 @@ function getConeVertexData() {
         pointsArray.push(normal);
     }
     return pointsArray;
+}
+
+/* return vertex data for primitive object */
+function getPrimitiveVertexData(id, details) {
+    var v = [];
+    switch(id) {
+        // lights
+        case 0:
+            v.push([0.0, 0.0, 0.0]);
+            v.push([0.0, 0.0, 0.0]);
+            break;
+        // axes
+        case 1:
+            v = getAxesVertexData(details);
+            break;
+        case 2:
+            v = getLineVertexData();
+            break;
+        case 3:
+            v = getGridVertexData(details);
+            break;
+        case 4:
+            v = getPolygonVertexData(details);
+            break;
+        case 5:
+            v = getCubeVertexData();
+            break;
+        case 6:
+            v = getSphereVertexData(details);
+            break;
+        case 7:
+            v = getCylinderVertexData(details);
+            break;
+        case 8:
+            v = getConeVertexData(details);
+            break;
+        default:
+            console.error("shape <" + id + "> is not supported");
+            break;
+    }
+
+    return v;
 }
 
 
@@ -309,12 +327,12 @@ function getSurfaceNormal(a, b, c) {
  *                geometry objects                 *
  ***************************************************/
 /* object primitive */
-function Geometry(shape, glParams, property) {
-    this.shape             = shape;
+function Geometry(shapeObject, property) {
+    this.shape             = shapeObject.id;
     this._gl               = {
-                                vbo: glParams.vbo,
-                                numVert: glParams.numVert,
-                                program: glParams.program,
+                                vbo: shapeObject.vbo,
+                                numVert: shapeObject.numVert,
+                                program: shapeObject.program,
                              };
     this.center            = [0.0, 0.0, 0.0];
     this.scale             = [1.0, 1.0, 1.0];
@@ -366,6 +384,7 @@ function Geometry(shape, glParams, property) {
             case 5:
             case 6:
             case 7:
+            case 8:
                 if (offline || this.fill) {
                     gl.drawArrays(gl.TRIANGLES, 0, this._gl.numVert);
                 }
