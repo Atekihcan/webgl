@@ -90,46 +90,22 @@ function getAxesVertexData(index, start, end) {
 }
 
 /* grid vertex data */
-function getGridVertexData(plane, start, end, divs) {
+function getGridVertexData(start, end, divs) {
     var pointsArray = [];
     var a = [parseInt(start[0] * divs), parseInt(start[1] * divs)],
-        b = [parseInt(end[0] * divs), parseInt(end[1] * divs)],
-        axis_1, axis_2;
-    
-    if (plane[0]) {
-        axis_1 = 0;
-        if (plane[1]) {
-            axis_2 = 1;
-        } else {
-            axis_2 = 2;
-        }
-    } else {
-        axis_1 = 1;
-        axis_2 = 2;
-    }
+        b = [parseInt(end[0] * divs), parseInt(end[1] * divs)];
     
     for (var i = a[0]; i <= b[0]; i++) {
-        var tmp_1 = [0.0, 0.0, 0.0];
-        tmp_1[axis_1] = i / divs;
-        tmp_1[axis_2] = start[1];
-        pointsArray.push(tmp_1);
+        pointsArray.push([i / divs, start[1], 0.0]);
         pointsArray.push([0.0, 0.0, 0.0]);
-        var tmp_2 = [0.0, 0.0, 0.0];
-        tmp_2[axis_1] = i / divs;
-        tmp_2[axis_2] = end[1];
-        pointsArray.push(tmp_2);
+        pointsArray.push([i / divs, end[1], 0.0]);
         pointsArray.push([0.0, 0.0, 0.0]);
     }
     for (var i = a[1]; i <= b[1]; i++) {
-        var tmp_1 = [0.0, 0.0, 0.0];
-        tmp_1[axis_1] = start[0];
-        tmp_1[axis_2] = i / divs;
-        pointsArray.push(tmp_1);
+        pointsArray.push([start[0], i / divs, 0.0]);
         pointsArray.push([0.0, 0.0, 0.0]);
         var tmp_2 = [0.0, 0.0, 0.0];
-        tmp_2[axis_1] = end[0];
-        tmp_2[axis_2] = i / divs;
-        pointsArray.push(tmp_2);
+        pointsArray.push([end[0], i / divs, 0.0]);
         pointsArray.push([0.0, 0.0, 0.0]);
     }
     return pointsArray;
@@ -327,4 +303,87 @@ function createPolygonFan(center, radius, numPoints, normal) {
 /* calculate surface normal for a triangle strip */
 function getSurfaceNormal(a, b, c) {
     return normalize(cross(subtract(c, a), subtract(b, a)));
+}
+
+/***************************************************
+ *                geometry objects                 *
+ ***************************************************/
+/* object primitive */
+function Geometry(shape, glParams, property) {
+    this.shape             = shape;
+    this._gl               = {
+                                vbo: glParams.vbo,
+                                numVert: glParams.numVert,
+                                program: glParams.program,
+                             };
+    this.center            = [0.0, 0.0, 0.0];
+    this.scale             = [1.0, 1.0, 1.0];
+    this.rotate            = [0.0, 0.0, 0.0];
+    this.translate         = [0.0, 0.0, 0.0];
+    this.materialColor     = [1.0, 0.0, 0.0, 1.0];
+    this.lighting          = false;
+    this.symmetry          = true;
+    this.fill              = true;
+    this.wireFrame         = false;
+    this.selected          = false;
+    this.render            = true;
+    
+    for(var p in property) {
+        if(property.hasOwnProperty(p)) {
+            this[p] = property[p];
+        }
+    }
+
+    // dynamically update the shape depending upon the mouse move endpoint
+    this.modifyShape = function(end) {
+        // hack to make symmetric shape
+        if (this.symmetry) {
+            if (Math.abs(this.center[0] - end[0]) != Math.abs(this.center[1] - end[1])) {
+                end[1] = this.center[1] + sign(end[1] - this.center[1]) * Math.abs(this.center[0] - end[0]);
+            }
+
+            this.scale = [Math.abs(end[0] - this.center[0]), Math.abs(end[1] - this.center[1]), Math.abs(end[1] - this.center[1])];
+        }
+        this.scale = [Math.abs(end[0] - this.center[0]), Math.abs(end[1] - this.center[1]), Math.abs(end[1] - this.center[1])];
+        this.translate = this.center;
+    };
+
+    // draw method for objects
+    this.draw = function(gl, offline) {
+        if (!this.render) {
+            return;
+        }
+        switch(this.shape) {
+            case 0:
+                gl.drawArrays(gl.POINTS, 0, this._gl.numVert);
+                break;
+            case 1:
+            case 2:
+            case 3:
+                gl.drawArrays(gl.LINES, 0, this._gl.numVert);
+                break;
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                if (offline || this.fill) {
+                    gl.drawArrays(gl.TRIANGLES, 0, this._gl.numVert);
+                }
+                if (!offline && this.selected) {
+                    for(var i = 0; i < this._gl.numVert; i += 3) {
+                        gl.uniform4fv(gl.getUniformLocation(this._gl.program, "u_materialColor"), flatten(getComplement(this.materialColor)));
+                        gl.drawArrays(gl.LINE_LOOP, i, 3);
+                    }
+                }
+                if (!offline && !this.fill && !this.selected && this.wireFrame) {
+                    for(var i = 0; i < this._gl.numVert; i += 3) {
+                        gl.drawArrays(gl.LINE_LOOP, i, 3);
+                    }
+                }
+                break;
+            default:
+                console.log("Shape <" + this.shape + "> is not supported");
+                break;
+        }
+    };
 }
