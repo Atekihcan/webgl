@@ -238,12 +238,15 @@ window.onload = function init() {
         uiPointLightPos.push(document.getElementById('uiPointLightPos_' + i));
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
-        SHAPES[key].vbo = gl.createBuffer();
-        SHAPES[key].program = program;
-        gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].vbo);
-        var v = getPrimitiveVertexData(SHAPES[key].id, SHAPES[key].details);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(v), gl.STATIC_DRAW);
-        SHAPES[key].numVert = v.length / 2;
+
+    AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0]  }));
+    AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
+    AXES.push(new Geometry(SHAPES["Grid"], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { materialColor: [0.0, 0.0, 0.0, 1.0], center: pointLightPos }));
+    //debug
+    // objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 0.0, 0.0, 1.0], center: [0.5, 0.5, 0.0], lighting: true }));
+    // objectsToDraw[objectsToDraw.length - 1].modifyShape([0.75, 0.75]);
+    // rePopulateShapeSelector();
     render();
 };
 
