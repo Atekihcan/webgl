@@ -10,7 +10,7 @@ uniform mat3 u_normMatrix;
 
 void main()
 {
-    gl_PointSize = 5.0;
+    gl_PointSize = 10.0;
     fPos = u_mvMatrix * vPos;
     fNorm = normalize(u_normMatrix * vNorm);
     gl_Position = u_pMatrix * fPos;

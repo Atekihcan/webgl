@@ -3,13 +3,14 @@
 /* global variables */
 var canvas, gl, program, pickBuf, browser;
 var shaders = ["shader.vert", "shader.frag"];
-var stopRender = false;
+var stopRender = false, xzPlaneType = false;
 
 var SHAPES = {
     // shape name: {id, vbo, number of vertices, details}
     "Point": { id: 0, vbo: null, numVert: 0, details: 0},
     "Axis": { id: 1, vbo: null, numVert: 0, details: 100},
     "Grid": { id: 3, vbo: null, numVert: 0, details: 10},
+    "Plane": { id: 4, vbo: null, numVert: 0, details: 4},
     "Cube": { id: 5, vbo: null, numVert: 0, details: 0},
     "Sphere": { id: 6, vbo: null, numVert: 0, details: 3},
     "Cylinder": { id: 7, vbo: null, numVert: 0, details: 50},
@@ -22,6 +23,7 @@ var shapeBufs = [];
 var objectsToDraw = [];
 var currentShape  = "Sphere";
 var currentObjectID = null;
+var currentLightID = 0;
 
 /* mouse controls */
 var mouseMode = "Draw";
@@ -36,13 +38,12 @@ var uiObjectPos = [], uiObjectPosVal = [];
 var uiObjectLight, uiObjectFill, uiObjectWireFrame;
 
 /* lights */
-var ambientLight       = [0.2, 0.2, 0.2];
-var pointLightSpecular = [1.0, 1.0, 1.0];
-var pointLightDiffuse  = [1.0, 1.0, 1.0];
-var pointLightPos      = [0.0, 0.0, 1.0];
+var ambientLight = [0.2, 0.2, 0.2];
+var lightTheta = 0.0;
 
 /* lights UI parameters */
-var ambientLightOn, pointLightOn;
+var lightPanel, uiLightSelector, uiLightCol;
+var ambientLightOn, uiPointLightOn, uiAnimatePointLight;
 var uiPointLightPos = [], uiPointLightPosVal = [];
 
 /* camera/projection matrices */
@@ -126,23 +127,24 @@ function initWebGL(shaderSources) {
 
 /* load global uniforms */
 function loadGlobalUniforms() {
-    gl.uniform1i(gl.getUniformLocation(program, "u_pointLightOn"), pointLightOn.checked);
+    gl.uniform1iv(gl.getUniformLocation(program, "u_pointLightOn"), flatten([LIGHTS[0].enabled, LIGHTS[1].enabled, LIGHTS[2].enabled]));
     gl.uniform1i(gl.getUniformLocation(program, "u_ambientLightOn"), ambientLightOn.checked);
     gl.uniform3fv(gl.getUniformLocation(program, "u_ambientLight"), flatten(ambientLight));
-    gl.uniform3fv(gl.getUniformLocation(program, "u_pointLightSpecular"), flatten(pointLightSpecular));
-    gl.uniform3fv(gl.getUniformLocation(program, "u_pointLightDiffuse"), flatten(pointLightDiffuse));
+    gl.uniform3fv(gl.getUniformLocation(program, "u_pointLightSpecular"), flatten([LIGHTS[0].specular, LIGHTS[1].specular, LIGHTS[2].specular]));
+    gl.uniform3fv(gl.getUniformLocation(program, "u_pointLightDiffuse"), flatten([LIGHTS[0].diffuse, LIGHTS[1].diffuse, LIGHTS[2].diffuse]));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_pMatrix"), false, flatten(pMatrix));
 }
 
 /* load object specific uniforms */
 function loadObjectUniforms(object) {
     gl.uniform1i(gl.getUniformLocation(program, "u_lightON"), object.lighting);
-    gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(object.materialColor));
 
     if (object.shape == 0) {
+        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(vec4(object.diffuse, 1.0)));
         var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
     } else {
+        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(object.materialColor));
         var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[0], [1, 0, 0]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[1], [0, 1, 0]));
@@ -155,7 +157,10 @@ function loadObjectUniforms(object) {
             normMatrix = transpose(normMatrix);
             gl.uniformMatrix3fv(gl.getUniformLocation(program, "u_normMatrix"), false, flatten(normMatrix));
         }
-        var transformedPointLightPos = multMatVect(cameraMatrix, vec4(pointLightPos, 1.0));
+        var transformedPointLightPos = [];
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[0].center, 1.0)));
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[1].center, 1.0)));
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[2].center, 1.0)));
         gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightPos"), flatten(transformedPointLightPos));
     }
 }
@@ -182,10 +187,15 @@ function render() {
             loadObjectUniforms(object);
             object.draw(gl, false);
         });
+        var i = 0;
         LIGHTS.forEach(function(object) {
             loadVertexAttribs(object._gl.vbo);
             loadObjectUniforms(object);
             object.draw(gl, false);
+            if (object.animate) {
+                animateLight(i, i, i % 2);
+            }
+            i++;
         });
         objectsToDraw.forEach(function(object) {
             loadVertexAttribs(object._gl.vbo);
@@ -209,6 +219,14 @@ function renderOffline() {
             object.draw(gl, true);
             i++;
         });
+        var j = 1;
+        LIGHTS.forEach(function(object) {
+            gl.uniform3fv(gl.getUniformLocation(program, "u_color"), flatten([0.0, 0.0, (j % 16) / 255.0]));
+            loadVertexAttribs(object._gl.vbo);
+            loadObjectUniforms(object);
+            object.draw(gl, true);
+            j++;
+        });
     }
 }
 
@@ -219,11 +237,15 @@ window.onload = function init() {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     mouseModeInfo      = document.getElementById('mouseMode');
-    pointLightOn       = document.getElementById('pointLight');
     ambientLightOn     = document.getElementById('ambientLight');
+    uiPointLightOn     = document.getElementById('uiPointLightOn');
+    uiAnimatePointLight= document.getElementById('uiAnimatePointLight');
     objectPanel        = document.getElementById('objectPanel');
+    lightPanel         = document.getElementById('lightPanel');
     uiObjectCol        = document.getElementById('objColUI');
+    uiLightCol         = document.getElementById('lightColUI');
     uiShapeSelector    = document.getElementById('shapeSelector');
+    uiLightSelector    = document.getElementById('lightSelector');
     uiObjectLight      = document.getElementById('uiObjectLight');
     uiObjectFill       = document.getElementById('uiObjectFill');
     uiObjectWireFrame  = document.getElementById('uiObjectWireFrame');
@@ -242,11 +264,20 @@ window.onload = function init() {
     AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0]  }));
     AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
     AXES.push(new Geometry(SHAPES["Grid"], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { materialColor: [0.0, 0.0, 0.0, 1.0], center: pointLightPos }));
-    //debug
-    // objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 0.0, 0.0, 1.0], center: [0.5, 0.5, 0.0], lighting: true }));
-    // objectsToDraw[objectsToDraw.length - 1].modifyShape([0.75, 0.75]);
-    // rePopulateShapeSelector();
+    LIGHTS.push(new Geometry(SHAPES["Point"], { diffuse: [1.0, 0.0, 0.0], specular: [1.0, 0.0, 0.0], center: [1.0, 0.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { diffuse: [0.0, 1.0, 0.0], specular: [0.0, 1.0, 0.0], center: [0.0, 1.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { diffuse: [0.0, 0.0, 1.0], specular: [0.0, 0.0, 1.0], center: [0.0, 0.0, 1.0], animate: true }));
+    // spheres
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [-0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.3, 0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.3, -0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true }));
+    // cylinders
+    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [-2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true }));
+    // cone
+    objectsToDraw.push(new Geometry(SHAPES["Cone"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.77, 0.0], scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true }));
+    rePopulateShapeSelector();
     render();
 };
 
@@ -294,16 +325,31 @@ function pick(x, y) {
     if (currentObjectID != null) {
         objectsToDraw[currentObjectID].selected = false;
     }
+    if (currentLightID != null) {
+        LIGHTS[currentLightID].selected = false;
+    }
     if (color[3] > 0) {
-        var id = decodeColor(color);
-        if (id >= 0 && id < objectsToDraw.length) {
-            uiShapeSelector.selectedIndex = id + 1;
-            selectObject(id + 1);
-            objectPanel.style.display = "";
-        } else {
-            uiShapeSelector.selectedIndex = 0;
-            currentObjectID = null;
-            objectPanel.style.display = "none";
+        if (color[2] > 0) { // light
+            var id = color[2];
+            if (id > 0 && id <= LIGHTS.length) {
+                uiLightSelector.selectedIndex = id - 1;
+                selectLight(id);
+                lightPanel.style.display = "";
+            } else {
+                lightPanel.style.display = "none";
+                objectPanel.style.display = "none";
+            }
+        } else { // object
+            var id = decodeColor(color);
+            if (id >= 0 && id < objectsToDraw.length) {
+                uiShapeSelector.selectedIndex = id + 1;
+                selectObject(id + 1);
+                objectPanel.style.display = "";
+            } else {
+                uiShapeSelector.selectedIndex = 0;
+                currentObjectID = null;
+                objectPanel.style.display = "none";
+            }
         }
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -496,6 +542,29 @@ function selectObject(value) {
     }
 }
 
+/* select light */
+function selectLight(value) {
+    if (value > 0 && value <= LIGHTS.length) {
+        var temp;
+        if (currentLightID != null) {
+            LIGHTS[currentLightID].selected = false;
+        }
+        currentLightID = value - 1;
+        uiLightCol.style.backgroundColor = nrgbToHex(LIGHTS[currentLightID].diffuse);
+        uiPointLightOn.checked           = LIGHTS[currentLightID].enabled;
+        uiAnimatePointLight.checked      = LIGHTS[currentLightID].animate;
+        for (var i = 0; i < 3; i++) {
+            temp = roundDown(LIGHTS[currentLightID].center[i]);
+            uiPointLightPos[i].value = temp;
+            uiPointLightPosVal[i].innerHTML = temp;
+        }
+        LIGHTS[currentLightID].selected = true;
+        canvas.style.cursor = "default";
+    } else {
+        console.log("There is no object at index " + value);
+    }
+}
+
 /* set color */
 function setColor(value) {
     var rgb = hexToRGB(value);
@@ -611,6 +680,15 @@ function handleKeyDown(event){
             deleteObject();
             event.preventDefault();
             break;
+        case 84: // T key to toggle xz grid/plane
+            AXES.splice(2, 1);
+            xzPlaneType = !xzPlaneType;
+            if (xzPlaneType) {
+                AXES.push(new Geometry(SHAPES["Grid"], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+            } else {
+                AXES.push(new Geometry(SHAPES["Plane"], { materialColor: [0.9, 0.9, 0.9, 1.0], rotate: [90, 0, 45], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
+            }
+            break;
     }
 
     if (event.keyCode > 32 && event.keyCode < 41) {
@@ -653,13 +731,28 @@ function setAmbientLightColor(value) {
 
 function setPointLightColor(value) {
     var rgb = hexToRGB(value);
-    pointLightSpecular = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
-    pointLightDiffuse  = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
+    LIGHTS[currentLightID].specular = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
+    LIGHTS[currentLightID].diffuse  = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
 }
 
 function setPointLightPos(index, value) {
-    pointLightPos[index] = value;
+    LIGHTS[currentLightID].center[index] = value;
     uiPointLightPosVal[index].innerHTML = value;
+}
+
+function enablePointLight(value) {
+    LIGHTS[currentLightID].enabled = value;
+}
+
+function animatePointLight(value) {
+    LIGHTS[currentLightID].animate = value;
+    if (!value) {
+        for (var i = 0; i < 3; i++) {
+            var temp = roundDown(LIGHTS[currentLightID].center[i]);
+            uiPointLightPos[i].value = temp;
+            uiPointLightPosVal[i].innerHTML = temp;
+        }
+    }
 }
 
 /* populate shape selector */
@@ -723,4 +816,22 @@ function zoomin(flag) {
             canvas.style.cursor = "default";
         }
     }, 500);
+}
+
+/* animate light */
+function animateLight(id, type, offset) {
+    var a = 1.5 * Math.sin(radians(lightTheta)),
+        b = 1.5 * Math.cos(radians(lightTheta));
+    switch (type) {
+        case 0: // circle in xy plane
+            LIGHTS[id].center = [a, b, offset];
+            break;
+        case 1: // circle in xz plane
+            LIGHTS[id].center = [-a, offset, b];
+            break;
+        case 2: // circle in yz plane
+            LIGHTS[id].center = [offset, a, -b];
+            break;
+    }
+    lightTheta += 1.0;
 }

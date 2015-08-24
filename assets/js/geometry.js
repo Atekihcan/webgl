@@ -345,6 +345,12 @@ function Geometry(shapeObject, property) {
     this.wireFrame         = false;
     this.selected          = false;
     this.render            = true;
+    this.animate           = false;
+    this.shininess         = 100.0;
+    // only for lights
+    this.enabled           = true;
+    this.diffuse           = [1.0, 1.0, 1.0];
+    this.specular          = [1.0, 1.0, 1.0];
     
     for(var p in property) {
         if(property.hasOwnProperty(p)) {
@@ -373,7 +379,9 @@ function Geometry(shapeObject, property) {
         }
         switch(this.shape) {
             case 0:
-                gl.drawArrays(gl.POINTS, 0, this._gl.numVert);
+                if (this.enabled) {
+                    gl.drawArrays(gl.POINTS, 0, this._gl.numVert);
+                }
                 break;
             case 1:
             case 2:
