@@ -11,7 +11,7 @@ uniform vec3 u_ambientLight;
 uniform vec3 u_pointLightSpecular;
 uniform vec3 u_pointLightDiffuse;
 uniform vec4 u_pointLightPos;
-uniform vec4 u_materialColor;
+uniform vec4 u_matColor;
 
 /* offscreen uniforms for picking */
 uniform int u_offscreen;
@@ -43,6 +43,6 @@ void main()
         } else {
             lightWeight = vec3(1.0, 1.0, 1.0);
         }
-        gl_FragColor = vec4((lightWeight * u_materialColor.rgb), 1.0);
+        gl_FragColor = vec4((lightWeight * u_matColor.rgb), 1.0);
     }
 }

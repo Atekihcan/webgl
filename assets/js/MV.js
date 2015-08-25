@@ -746,7 +746,7 @@ function flatten( v, intArray )
     }
 
     if (intArray) {
-        var floats = new Uint16Array( n );
+        var floats = new Int32Array( n );
     } else {
         var floats = new Float32Array( n );
     }

@@ -38,7 +38,7 @@ var uiObjectPos = [], uiObjectPosVal = [];
 var uiObjectLight, uiObjectFill, uiObjectWireFrame;
 
 /* lights */
-var ambientLight = [0.2, 0.2, 0.2];
+var ambientLight = [0.2, 0.2, 0.2, 1.0];
 var lightTheta = 0.0;
 
 /* lights UI parameters */
@@ -127,20 +127,26 @@ function initWebGL(shaderSources) {
 
 /* load global uniforms */
 function loadGlobalUniforms() {
-    gl.uniform1iv(gl.getUniformLocation(program, "u_pointLightOn"), flatten([LIGHTS[0].enabled, LIGHTS[1].enabled, LIGHTS[2].enabled]));
     gl.uniform1i(gl.getUniformLocation(program, "u_ambientLightOn"), ambientLightOn.checked);
-    gl.uniform3fv(gl.getUniformLocation(program, "u_ambientLight"), flatten(ambientLight));
-    gl.uniform3fv(gl.getUniformLocation(program, "u_pointLightSpecular"), flatten([LIGHTS[0].specular, LIGHTS[1].specular, LIGHTS[2].specular]));
-    gl.uniform3fv(gl.getUniformLocation(program, "u_pointLightDiffuse"), flatten([LIGHTS[0].diffuse, LIGHTS[1].diffuse, LIGHTS[2].diffuse]));
+    gl.uniform1iv(gl.getUniformLocation(program, "u_pointLightOn"), flatten([LIGHTS[0].enabled, LIGHTS[1].enabled, LIGHTS[2].enabled], true));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_ambientLight"), flatten(ambientLight));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightSpecular"), flatten([LIGHTS[0].matSpecular, LIGHTS[1].matSpecular, LIGHTS[2].matSpecular]));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightDiffuse"), flatten([LIGHTS[0].matDiffuse, LIGHTS[1].matDiffuse, LIGHTS[2].matDiffuse]));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_pMatrix"), false, flatten(pMatrix));
 }
 
 /* load object specific uniforms */
 function loadObjectUniforms(object) {
     gl.uniform1i(gl.getUniformLocation(program, "u_lightON"), object.lighting);
+    gl.uniform1f(gl.getUniformLocation(program, "u_matShininess"), object.matShininess);
+    gl.uniform4fv(gl.getUniformLocation(program, "u_matAmbient"), flatten(object.matAmbient));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_matDiffuse"), flatten(object.matDiffuse));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_matSpecular"), flatten(object.matSpecular));
 
     if (object.shape == 0) {
-        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(vec4(object.diffuse, 1.0)));
+        var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
+    } else {
         var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
     } else {
@@ -261,22 +267,22 @@ window.onload = function init() {
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
 
-    AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0]  }));
-    AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
-    AXES.push(new Geometry(SHAPES["Grid"], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { diffuse: [1.0, 0.0, 0.0], specular: [1.0, 0.0, 0.0], center: [1.0, 0.0, 0.0], animate: true }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { diffuse: [0.0, 1.0, 0.0], specular: [0.0, 1.0, 0.0], center: [0.0, 1.0, 0.0], animate: true }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { diffuse: [0.0, 0.0, 1.0], specular: [0.0, 0.0, 1.0], center: [0.0, 0.0, 1.0], animate: true }));
+    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0] }));
+    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
+    AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], center: [1.0, 0.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], center: [0.0, 1.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.0, 1.0], animate: true }));
     // spheres
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [-0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.3, 0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.3, -0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [-0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [0.0, 0.3, 0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [0.0, 0.3, -0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true, material: "Brass" }));
     // cylinders
-    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true }));
-    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [-2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { center: [2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
+    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { center: [-2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
     // cone
-    objectsToDraw.push(new Geometry(SHAPES["Cone"], { materialColor: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.77, 0.0], scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true }));
+    objectsToDraw.push(new Geometry(SHAPES["Cone"], { center: [0.0, 0.77, 0.0], scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Obsidian" }));
     rePopulateShapeSelector();
     render();
 };
@@ -516,7 +522,7 @@ function selectObject(value) {
             objectsToDraw[currentObjectID].selected = false;
         }
         currentObjectID = value - 1;
-        uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
+        uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].matDiffuse);
         uiObjectLight.checked     = objectsToDraw[currentObjectID].lighting;
         uiObjectFill.checked      = objectsToDraw[currentObjectID].fill;
         uiObjectWireFrame.checked = objectsToDraw[currentObjectID].wireFrame;
@@ -550,7 +556,7 @@ function selectLight(value) {
             LIGHTS[currentLightID].selected = false;
         }
         currentLightID = value - 1;
-        uiLightCol.style.backgroundColor = nrgbToHex(LIGHTS[currentLightID].diffuse);
+        uiLightCol.style.backgroundColor = nrgbToHex(LIGHTS[currentLightID].matDiffuse);
         uiPointLightOn.checked           = LIGHTS[currentLightID].enabled;
         uiAnimatePointLight.checked      = LIGHTS[currentLightID].animate;
         for (var i = 0; i < 3; i++) {
@@ -569,7 +575,7 @@ function selectLight(value) {
 function setColor(value) {
     var rgb = hexToRGB(value);
     if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].materialColor = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
+        objectsToDraw[currentObjectID].matDiffuse = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
     }
 }
 
@@ -682,12 +688,12 @@ function handleKeyDown(event){
             break;
         case 84: // T key to toggle xz grid/plane
             AXES.splice(2, 1);
-            xzPlaneType = !xzPlaneType;
             if (xzPlaneType) {
-                AXES.push(new Geometry(SHAPES["Grid"], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+                AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
             } else {
-                AXES.push(new Geometry(SHAPES["Plane"], { materialColor: [0.9, 0.9, 0.9, 1.0], rotate: [90, 0, 45], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
+                AXES.push(new Geometry(SHAPES["Plane"], { matDiffuse: [0.9, 0.9, 0.9, 1.0], rotate: [90, 0, 45], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
             }
+            xzPlaneType = !xzPlaneType;
             break;
     }
 
@@ -726,13 +732,12 @@ function handleKeyUp(event){
 /* light options UI */
 function setAmbientLightColor(value) {
     var rgb = hexToRGB(value);
-    ambientLight = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
+    ambientLight = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
 }
 
 function setPointLightColor(value) {
     var rgb = hexToRGB(value);
-    LIGHTS[currentLightID].specular = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
-    LIGHTS[currentLightID].diffuse  = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0];
+    LIGHTS[currentLightID].matDiffuse  = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
 }
 
 function setPointLightPos(index, value) {

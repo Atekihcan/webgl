@@ -328,34 +328,39 @@ function getSurfaceNormal(a, b, c) {
  ***************************************************/
 /* object primitive */
 function Geometry(shapeObject, property) {
-    this.shape             = shapeObject.id;
-    this._gl               = {
-                                vbo: shapeObject.vbo,
-                                numVert: shapeObject.numVert,
-                                program: shapeObject.program,
-                             };
-    this.center            = [0.0, 0.0, 0.0];
-    this.scale             = [1.0, 1.0, 1.0];
-    this.rotate            = [0.0, 0.0, 0.0];
-    this.translate         = [0.0, 0.0, 0.0];
-    this.materialColor     = [1.0, 0.0, 0.0, 1.0];
-    this.lighting          = false;
-    this.symmetry          = true;
-    this.fill              = true;
-    this.wireFrame         = false;
-    this.selected          = false;
-    this.render            = true;
-    this.animate           = false;
-    this.shininess         = 100.0;
+    this.shape        = shapeObject.id;
+    this._gl          = {
+                           vbo: shapeObject.vbo,
+                           numVert: shapeObject.numVert,
+                           program: shapeObject.program,
+                        };
+    this.center       = [0.0, 0.0, 0.0];
+    this.scale        = [1.0, 1.0, 1.0];
+    this.rotate       = [0.0, 0.0, 0.0];
+    this.translate    = [0.0, 0.0, 0.0];
+    this.matColor     = [1.0, 0.0, 0.0, 1.0];
+    this.matAmbient   = [0.0, 0.0, 0.0, 1.0];
+    this.matDiffuse   = [1.0, 1.0, 1.0, 1.0];
+    this.matSpecular  = [0.0, 0.0, 0.0, 1.0];
+    this.matShininess = 100.0;
+    this.lighting     = false;
+    this.symmetry     = true;
+    this.fill         = true;
+    this.wireFrame    = false;
+    this.selected     = false;
+    this.render       = true;
+    this.animate      = false;
     // only for lights
-    this.enabled           = true;
-    this.diffuse           = [1.0, 1.0, 1.0];
-    this.specular          = [1.0, 1.0, 1.0];
+    this.enabled      = true;
     
     for(var p in property) {
         if(property.hasOwnProperty(p)) {
             this[p] = property[p];
         }
+    }
+
+    if (typeof this.material != 'undefined') {
+        setMaterialType(this, this.material);
     }
 
     // dynamically update the shape depending upon the mouse move endpoint
@@ -398,7 +403,7 @@ function Geometry(shapeObject, property) {
                 }
                 if (!offline && this.selected) {
                     for(var i = 0; i < this._gl.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(this._gl.program, "u_materialColor"), flatten(getComplement(this.materialColor)));
+                        gl.uniform4fv(gl.getUniformLocation(this._gl.program, "u_materialColor"), flatten(getComplement(this.matDiffuse)));
                         gl.drawArrays(gl.LINE_LOOP, i, 3);
                     }
                 }
@@ -412,5 +417,10 @@ function Geometry(shapeObject, property) {
                 console.log("Shape <" + this.shape + "> is not supported");
                 break;
         }
+    };
+    
+    // set reflective material type
+    this.setMaterial = function(type) {
+        setMaterialType(this, type);
     };
 }

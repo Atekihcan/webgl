@@ -137,7 +137,7 @@ function loadGlobalUniforms() {
 /* load object specific uniforms */
 function loadObjectUniforms(object) {
     gl.uniform1i(gl.getUniformLocation(program, "u_lightON"), object.lighting);
-    gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(object.materialColor));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_matColor"), flatten(object.matColor));
 
     if (object.shape == 0) {
         var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
@@ -239,12 +239,12 @@ window.onload = function init() {
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
 
-    AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0]  }));
-    AXES.push(new Geometry(SHAPES["Axis"], { materialColor: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
-    AXES.push(new Geometry(SHAPES["Grid"], { materialColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { materialColor: [0.0, 0.0, 0.0, 1.0], center: pointLightPos }));
+    AXES.push(new Geometry(SHAPES["Axis"], { matColor: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0]  }));
+    AXES.push(new Geometry(SHAPES["Axis"], { matColor: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
+    AXES.push(new Geometry(SHAPES["Grid"], { matColor: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matColor: [0.0, 0.0, 0.0, 1.0], center: pointLightPos }));
     //debug
-    // objectsToDraw.push(new Geometry(SHAPES["Sphere"], { materialColor: [1.0, 0.0, 0.0, 1.0], center: [0.5, 0.5, 0.0], lighting: true }));
+    // objectsToDraw.push(new Geometry(SHAPES["Sphere"], { matColor: [1.0, 0.0, 0.0, 1.0], center: [0.5, 0.5, 0.0], lighting: true }));
     // objectsToDraw[objectsToDraw.length - 1].modifyShape([0.75, 0.75]);
     // rePopulateShapeSelector();
     render();
@@ -470,7 +470,7 @@ function selectObject(value) {
             objectsToDraw[currentObjectID].selected = false;
         }
         currentObjectID = value - 1;
-        uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].materialColor);
+        uiObjectCol.style.backgroundColor = nrgbToHex(objectsToDraw[currentObjectID].matColor);
         uiObjectLight.checked     = objectsToDraw[currentObjectID].lighting;
         uiObjectFill.checked      = objectsToDraw[currentObjectID].fill;
         uiObjectWireFrame.checked = objectsToDraw[currentObjectID].wireFrame;
@@ -500,7 +500,7 @@ function selectObject(value) {
 function setColor(value) {
     var rgb = hexToRGB(value);
     if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].materialColor = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
+        objectsToDraw[currentObjectID].matColor = [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0];
     }
 }
 
