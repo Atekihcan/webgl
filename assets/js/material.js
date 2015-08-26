@@ -177,9 +177,8 @@ var Material = {
 
 function setMaterialType(object, materialType) {
     var m = Material[materialType];
-    
-    object.matAmbient  = m.ambient; 
-    object.matDiffuse  = m.diffuse;
-    object.matSpecular = m.specular;
-    object.matShinines = m.shinines;
+    object.matAmbient   = m.ambient; 
+    object.matDiffuse   = m.diffuse;
+    object.matSpecular  = m.specular;
+    object.matShininess = m.shinines;
 }

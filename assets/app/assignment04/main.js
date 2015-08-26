@@ -148,9 +148,9 @@ function loadObjectUniforms(object) {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
     } else {
         var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
-        mvMatrix = mult(mvMatrix, rotate(object.rotate[0], [1, 0, 0]));
-        mvMatrix = mult(mvMatrix, rotate(object.rotate[1], [0, 1, 0]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[2], [0, 0, 1]));
+        mvMatrix = mult(mvMatrix, rotate(object.rotate[1], [0, 1, 0]));
+        mvMatrix = mult(mvMatrix, rotate(object.rotate[0], [1, 0, 0]));
         mvMatrix = mult(mvMatrix, scale(object.scale[0], object.scale[1], object.scale[2]));
         mvMatrix = mult(mvMatrix, translate(object.translate[0] - object.center[0], object.translate[1] - object.center[1], object.translate[2] - object.center[2]));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
@@ -278,7 +278,7 @@ window.onload = function init() {
     objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { center: [2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
     objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { center: [-2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
     // cone
-    objectsToDraw.push(new Geometry(SHAPES["Cone"], { center: [0.0, 0.77, 0.0], scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Obsidian" }));
+    objectsToDraw.push(new Geometry(SHAPES["Cone"], { center: [0.0, 0.77, 0.0], scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Silver" }));
     rePopulateShapeSelector();
     render();
 };
@@ -687,7 +687,7 @@ function handleKeyDown(event){
             if (xzPlaneType) {
                 AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
             } else {
-                AXES.push(new Geometry(SHAPES["Plane"], { matDiffuse: [0.9, 0.9, 0.9, 1.0], rotate: [90, 0, 45], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
+                AXES.push(new Geometry(SHAPES["Plane"], { material: "White Plastic", rotate: [90, 45, 0], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
             }
             xzPlaneType = !xzPlaneType;
             break;
