@@ -403,7 +403,7 @@ function Geometry(shapeObject, property) {
                 }
                 if (!offline && this.selected) {
                     for(var i = 0; i < this._gl.numVert; i += 3) {
-                        gl.uniform4fv(gl.getUniformLocation(this._gl.program, "u_materialColor"), flatten(getComplement(this.matDiffuse)));
+                        gl.uniform4fv(gl.getUniformLocation(this._gl.program, "u_matDiffuse"), flatten(getComplement(this.matDiffuse)));
                         gl.drawArrays(gl.LINE_LOOP, i, 3);
                     }
                 }

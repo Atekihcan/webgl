@@ -148,10 +148,6 @@ function loadObjectUniforms(object) {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
     } else {
         var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
-    } else {
-        gl.uniform4fv(gl.getUniformLocation(program, "u_materialColor"), flatten(object.materialColor));
-        var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[0], [1, 0, 0]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[1], [0, 1, 0]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[2], [0, 0, 1]));
