@@ -25,6 +25,7 @@ var TEXTURES = [
 var LIGHTS = [];
 var objectsToDraw = [];
 var currentObject = null;
+var currentTexture = 3, lightON = true;
 
 /* mouse controls */
 var lastPosition = [];
@@ -35,7 +36,7 @@ var isMouseDown = false;
 var uiCheckerSizeVal, uiBumpAmountVal;
 
 /* lights */
-var ambientLight = [0.5, 0.5, 0.5, 1.0];
+var ambientLight = [0.2, 0.2, 0.2, 1.0];
 var lightThetaX = 0.0, lightThetaY = 0.0;
 
 /* camera/projection matrices */
@@ -245,14 +246,15 @@ window.onload = function init() {
     // sphere
     objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.8, 0.8, 0.8], rotate: [0, 0, 0], translate: [0.0, 0.0, 0.0] }));
     currentObject = objectsToDraw[0];
-    loadTexture(3);
+    loadTexture(currentTexture);
     setTexType(1);
     setTexMapType(0);
     setCheckerSize(4.0);
     setCheckerColor(1, "#ffffff");
     setCheckerColor(2, "#000000");
-    enableBump(true);
-    setBumpAmount(5);
+    enableBump(false);
+    setBumpAmount(4);
+    enableLight(lightON);
     render();
 };
 
@@ -371,6 +373,17 @@ function setBumpAmount(value) {
     uiBumpAmountVal.innerHTML = value;
 }
 
+/* enable/disable light */
+function enableLight(flag) {
+    if (flag) {
+        gl.uniform1i(gl.getUniformLocation(program, "u_pointLightOn"), 1);
+        lightON = true;
+    } else {
+        gl.uniform1i(gl.getUniformLocation(program, "u_pointLightOn"), 0);
+        lightON = false;
+    }
+}
+
 /* capture key press */
 function handleKeyDown(event){
     switch (event.keyCode) {
@@ -380,7 +393,11 @@ function handleKeyDown(event){
         case 72: // H key show/hide help
             toggleControls('helpPanel');
             break;
+        case 76: // L key on/off light
+            enableLight(!lightON);
+            break;
         case 84: // T key to toggle texture
+            loadTexture(++currentTexture % 8);
             break;
     }
 

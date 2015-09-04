@@ -18,11 +18,11 @@ uniform vec4 u_checkerColor_1;
 uniform vec4 u_checkerColor_2;
 
 /* light uniforms */
-const int NUM_LIGHTS = 1;
+uniform int u_pointLightOn;
 uniform vec4 u_ambientLight;
-uniform vec4 u_pointLightSpecular[NUM_LIGHTS];
-uniform vec4 u_pointLightDiffuse[NUM_LIGHTS];
-uniform vec4 u_pointLightPos[NUM_LIGHTS];
+uniform vec4 u_pointLightSpecular;
+uniform vec4 u_pointLightDiffuse;
+uniform vec4 u_pointLightPos;
 
 vec4 createCheckerBoard(vec2 uv) {
     float fmodResult = mod(floor(u_fcheckerSize * uv.x) + floor(u_fcheckerSize * uv.y), 2.0);
@@ -53,18 +53,19 @@ void main()
         vec3 dPositiondy = dFdy(normalize(fPos).xyz);
         float dDepthdx = dFdx(bump);
         float dDepthdy = dFdy(bump);
-        dPositiondx -= 0.02 * dDepthdx * fNorm;
-        dPositiondy -= 0.02 * dDepthdy * fNorm;
+        dPositiondx -= 10.0 * dDepthdx * fNorm;
+        dPositiondy -= 10.0 * dDepthdy * fNorm;
         // The normal is the cross product of the differentials
         normal = vec4(normalize(cross(dPositiondx, dPositiondy)), 0.0);
 #endif
     }
-    
-    vec4 eyeDirection = normalize(-fPos);
-    for(int i = 0; i < NUM_LIGHTS; i++) {
-        vec4 lightDirection = normalize(u_pointLightPos[i] - fPos);
+
+    if (u_pointLightOn != 0) {
+        vec4 lightDirection = normalize(u_pointLightPos - fPos);
         float diffuse = max(dot(normal, lightDirection), 0.0);
-        finalColor = (diffuse * u_pointLightDiffuse[i] + u_ambientLight) * texDiffuse;
+        finalColor = clamp(diffuse * u_pointLightDiffuse + u_ambientLight, 0.0, 1.0) * texDiffuse;
+    } else {
+        finalColor = texDiffuse;
     }
     gl_FragColor = finalColor;
 }
