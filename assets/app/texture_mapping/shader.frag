@@ -9,13 +9,9 @@ varying vec3 fBiTangent;
 
 /* texture */
 varying vec2 fTexCoord;
-uniform int u_ftextureType;
 uniform int u_fbumpEnabled;
-uniform float u_fcheckerSize;
 uniform sampler2D u_bump;
 uniform sampler2D u_texture;
-uniform vec4 u_checkerColor_1;
-uniform vec4 u_checkerColor_2;
 
 /* light uniforms */
 uniform int u_pointLightOn;
@@ -24,27 +20,12 @@ uniform vec4 u_pointLightSpecular;
 uniform vec4 u_pointLightDiffuse;
 uniform vec4 u_pointLightPos;
 
-vec4 createCheckerBoard(vec2 uv) {
-    float fmodResult = mod(floor(u_fcheckerSize * uv.x) + floor(u_fcheckerSize * uv.y), 2.0);
-    if (fmodResult < 1.0) {
-        return u_checkerColor_1;
-    } else {
-        return u_checkerColor_2;
-    }
-}
-
 void main()
 {
     vec4 normal      = vec4(fNorm, 0.0);
-    vec4 texDiffuse  = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 texDiffuse  = texture2D(u_texture, fTexCoord);
     vec4 finalColor  = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 lightWeight = vec4(0.0, 0.0, 0.0, 0.0);
-
-    if (u_ftextureType != 0) {
-        texDiffuse = texture2D(u_texture, fTexCoord);
-    } else {
-        texDiffuse = createCheckerBoard(fTexCoord);
-    }
 
 #ifdef GL_OES_standard_derivatives
     if (u_fbumpEnabled != 0) {

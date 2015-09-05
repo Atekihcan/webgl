@@ -1,7 +1,7 @@
 "use strict";
 
 /* global variables */
-var canvas, gl, program, imgTex, bumpTex, browser;
+var canvas, gl, program, imgTex, normalTex, bumpTex, browser;
 var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false;
 
@@ -11,30 +11,13 @@ var SHAPES = {
     "Sphere": { id: 7, details: 50 },
 };
 
-var TEXTURES = [
-    "brick",
-    "cobble",
-    "hedge",
-    "metal",
-    "rock",
-    "rock_wall",
-    "earth",
-    "moon",
-    "mars"
-];
-
-var LIGHTS = [];
-var objectsToDraw = [];
+var light = null;
 var currentObject = null;
-var currentTexture = 3, lightON = true;
+var TEX = "brick", lightON = true, bumpON = true, bump = 5.0;
 
 /* mouse controls */
 var lastPosition = [];
-var shiftDown = false;
 var isMouseDown = false;
-
-/* texture ui parameters */
-var uiCheckerSizeVal, uiBumpAmountVal;
 
 /* lights */
 var ambientLight = [0.2, 0.2, 0.2, 1.0];
@@ -135,14 +118,15 @@ function initWebGL(shaderSources) {
     }
 
     // Create a texture.
-    imgTex  = gl.createTexture();
-    bumpTex = gl.createTexture();
+    imgTex    = gl.createTexture();
+    bumpTex   = gl.createTexture();
+    normalTex = gl.createTexture();
 }
 
 /* load texture */
-function loadTexture(id) {
+function loadTexture() {
     var image = new Image();
-    image.src = "assets/tex/" + TEXTURES[id] + ".jpg";
+    image.src = "assets/tex/" + TEX + ".jpg";
     image.addEventListener('load', function() {
         // Now that the image has loaded make copy it to the texture.
         gl.activeTexture(gl.TEXTURE0);
@@ -152,11 +136,10 @@ function loadTexture(id) {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        //gl.generateMipmap(gl.TEXTURE_2D);
     });
 
     var bImage = new Image();
-    bImage.src = "assets/tex/" + TEXTURES[id] + "_bump.jpg";
+    bImage.src = "assets/tex/" + TEX + "_bump.jpg";
     bImage.addEventListener('load', function() {
         // Now that the image has loaded make copy it to the texture.
         // Bind bump texture in Texture Unit 1
@@ -167,15 +150,28 @@ function loadTexture(id) {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bImage);
-        //gl.generateMipmap(gl.TEXTURE_2D);
+    });
+
+    var nImage = new Image();
+    nImage.src = "assets/tex/" + TEX + "_normal.jpg";
+    nImage.addEventListener('load', function() {
+        // Now that the image has loaded make copy it to the texture.
+        // Bind normal texture in Texture Unit 2
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, normalTex);
+        gl.uniform1i(gl.getUniformLocation(program, "u_normal"), 2);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, nImage);
     });
 }
 
 /* load global uniforms */
 function loadGlobalUniforms() {
     gl.uniform4fv(gl.getUniformLocation(program, "u_ambientLight"), flatten(ambientLight));
-    gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightSpecular"), flatten([LIGHTS[0].matSpecular]));
-    gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightDiffuse"), flatten([LIGHTS[0].matDiffuse]));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightSpecular"), flatten([light.matSpecular]));
+    gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightDiffuse"), flatten([light.matDiffuse]));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_pMatrix"), false, flatten(pMatrix));
 }
 
@@ -199,7 +195,7 @@ function loadObjectUniforms(object) {
             gl.uniformMatrix3fv(gl.getUniformLocation(program, "u_normMatrix"), false, flatten(normMatrix));
         }
         var transformedPointLightPos = [];
-        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[0].translate, 1.0)));
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(light.translate, 1.0)));
         gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightPos"), flatten(transformedPointLightPos));
     }
 }
@@ -211,10 +207,10 @@ function loadVertexAttribs(ctx) {
     var vPos = gl.getAttribLocation(program, "vPos");
     gl.vertexAttribPointer(vPos, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPos);
-    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.nbo);
-    var vNorm = gl.getAttribLocation(program, "vNorm");
-    gl.vertexAttribPointer(vNorm, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vNorm);
+    //gl.bindBuffer(gl.ARRAY_BUFFER, ctx.nbo);
+    //var vNorm = gl.getAttribLocation(program, "vNorm");
+    //gl.vertexAttribPointer(vNorm, 3, gl.FLOAT, false, 0, 0);
+    //gl.enableVertexAttribArray(vNorm);
     gl.bindBuffer(gl.ARRAY_BUFFER, ctx.tbo);
     var vTexCoord = gl.getAttribLocation(program, "vTexCoord");
     gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
@@ -237,23 +233,15 @@ function render() {
 /* start the application */
 window.onload = function init() {
     browser = checkBrowserType();
-    asyncLoadShaders("assignment05", shaders, initWebGL);
+    asyncLoadShaders("texture_mapping", shaders, initWebGL);
     document.addEventListener('keydown', handleKeyDown);
-    uiCheckerSizeVal = document.getElementById("uiCheckerSizeVal");
-    uiBumpAmountVal  = document.getElementById("uiBumpAmountVal");
 
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [-2.0, 0.0, 1.0], animate: true }));
+    light = new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [-2.0, 0.0, 1.0], animate: true });
     // sphere
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"]));
-    currentObject = objectsToDraw[0];
-    loadTexture(currentTexture);
-    setTexType(1);
-    setTexMapType(0);
-    setCheckerSize(4.0);
-    setCheckerColor(1, "#ffffff");
-    setCheckerColor(2, "#000000");
-    enableBump(false);
-    setBumpAmount(4);
+    currentObject = new Geometry(SHAPES["Sphere"]);
+    loadTexture();
+    enableBump(bumpON);
+    setBumpAmount(bump);
     enableLight(lightON);
     render();
 };
@@ -332,45 +320,22 @@ function resetAxes() {
     changeCameraPosition();
 }
 
-/* set texture type */
-function setTexType(type) {
-    gl.uniform1i(gl.getUniformLocation(program, "u_vtextureType"), parseInt(type));
-    gl.uniform1i(gl.getUniformLocation(program, "u_ftextureType"), parseInt(type));
-}
-
-/* set texture mapping type */
-function setTexMapType(type) {
-    gl.uniform1i(gl.getUniformLocation(program, "u_textureMapType"), parseInt(type));
-}
-
-/* set checker-board color */
-function setCheckerColor(id, value) {
-    var rgb = hexToRGB(value);
-    gl.uniform4fv(gl.getUniformLocation(program, "u_checkerColor_" + id), flatten([rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, 1.0]));
-}
-
-/* set checker-board size */
-function setCheckerSize(value) {
-    gl.uniform1f(gl.getUniformLocation(program, "u_vcheckerSize"), parseFloat(value));
-    gl.uniform1f(gl.getUniformLocation(program, "u_fcheckerSize"), parseFloat(value));
-    uiCheckerSizeVal.innerHTML = value;
-}
-
 /* enable/disable bump */
 function enableBump(flag) {
     if (flag) {
         gl.uniform1i(gl.getUniformLocation(program, "u_vbumpEnabled"), 1);
         gl.uniform1i(gl.getUniformLocation(program, "u_fbumpEnabled"), 1);
+        bumpON = true;
     } else {
         gl.uniform1i(gl.getUniformLocation(program, "u_vbumpEnabled"), 0);
         gl.uniform1i(gl.getUniformLocation(program, "u_fbumpEnabled"), 0);
+        bumpON = false;
     }
 }
 
 /* set bump amount */
 function setBumpAmount(value) {
     gl.uniform1f(gl.getUniformLocation(program, "u_bumpAmount"), parseFloat(value / 100.0));
-    uiBumpAmountVal.innerHTML = value;
 }
 
 /* enable/disable light */
@@ -387,6 +352,9 @@ function enableLight(flag) {
 /* capture key press */
 function handleKeyDown(event){
     switch (event.keyCode) {
+        case 66: // B key on/off bump
+            enableBump(!bumpON);
+            break;
         case 72: // H key show/hide help
             toggleControls('helpPanel');
             break;
@@ -396,8 +364,11 @@ function handleKeyDown(event){
         case 82: // R key to reset the axes rotation
             resetAxes();
             break;
-        case 84: // T key to toggle texture
-            loadTexture(++currentTexture % 9);
+        case 88: // X key to increase bump
+            if (bump < 20) { setBumpAmount(++bump); }
+            break;
+        case 90: // Z key to decrease bump
+            if (bump > 0) { setBumpAmount(--bump); }
             break;
     }
 
@@ -459,5 +430,11 @@ function changeCameraAngle(dx, dy) {
 
 /* animate light */
 function animate() {
-    currentObject.rotate[1] += 0.5;
+    //currentObject.rotate[1] += 0.5;
+    var x = 2.0 * Math.sin(radians(lightThetaY)) * Math.cos(radians(lightThetaX)),
+        y = 2.0 * Math.sin(radians(lightThetaX)),
+        z = 2.0 * Math.cos(radians(lightThetaY)) * Math.cos(radians(lightThetaX));
+    
+    light.translate = [x, y, z];
+    lightThetaY += 0.5;
 }
