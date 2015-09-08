@@ -334,6 +334,16 @@ input[type=checkbox] {
     }
 }
 
+@media (max-width: 768px) {
+    .hide-for-xs {
+        display: none;
+    }
+
+    .small-font-for-xs {
+        font-size: 0.8em;
+    }
+}
+
 .panel-cell {
     text-align: center;
     padding: 0px 6%;
