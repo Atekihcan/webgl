@@ -1,7 +1,7 @@
 "use strict";
 
 /* global variables */
-var canvas, gl, program, imgTex, normalTex, bumpTex, browser;
+var canvas, gl, program, browser;
 var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false;
 
@@ -11,14 +11,8 @@ var SHAPES = {
     "Sphere": { id: 7, details: 50 },
 };
 
-var TEXTURES = [
-    "brick",
-    "rock_wall",
-    "wood",
-    "earth",
-    "moon",
-    "mars"
-];
+var TEXTURES = [];
+var texFileNames = ["brick", "rock_wall", "wood", "earth", "moon", "mars"];
 
 var light = null;
 var currentObject = null;
@@ -27,9 +21,6 @@ var currentTexture = 3, lightON = true, bumpON = true, bump = 5.0;
 /* mouse controls */
 var lastPosition = [];
 var isMouseDown = false;
-
-/* texture ui parameters */
-var uiCheckerSizeVal, uiBumpAmountVal;
 
 /* lights */
 var ambientLight = [0.2, 0.2, 0.2, 1.0];
@@ -48,13 +39,6 @@ var zoom = 4.0, angleX = 0.0, angleY = 0.0;
 /* initialize WebGL context */
 function initWebGL(shaderSources) {
     canvas = document.getElementById("gl-canvas");
-    // for small screen devices use a square canvas
-    var canvas_xs = document.getElementById("gl-canvas-xs");
-    if (window.innerWidth < 768) {
-        canvas.style.display = "none";
-        canvas = canvas_xs;
-        canvas.style.display = "";
-    }
     canvas.addEventListener("mousedown", getMouseDown, false);
     canvas.addEventListener("mousemove", getMouseMove, false);
     canvas.addEventListener("mouseup", getMouseUp, false);
@@ -110,54 +94,34 @@ function initWebGL(shaderSources) {
         gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].tbo);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(data.t), gl.STATIC_DRAW);
     }
-
-    // Create a texture.
-    imgTex    = gl.createTexture();
-    bumpTex   = gl.createTexture();
-    normalTex = gl.createTexture();
+    loadTextures();
 }
 
 /* load texture */
-function loadTexture(id) {
+function loadTextures() {
+    for (var i = 0; i < texFileNames.length; i++) {
+        // Create textures.
+        var iTexture = gl.createTexture();
+        var bTexture = gl.createTexture();
+        var nTexture = gl.createTexture();
+        loadAndHandleTexture(texFileNames[i], iTexture);
+        loadAndHandleTexture(texFileNames[i] + "_bump", bTexture);
+        loadAndHandleTexture(texFileNames[i] + "_normal", nTexture);
+        TEXTURES.push({ iTex: iTexture, bTex: bTexture, nTex: nTexture });
+    }
+}
+
+function loadAndHandleTexture(fileName, texture) {
     var image = new Image();
-    image.src = "assets/tex/" + TEXTURES[id] + ".jpg";
+    image.src = "assets/tex/" + fileName + ".jpg";
     image.addEventListener('load', function() {
         // Now that the image has loaded make copy it to the texture.
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, imgTex);
-        gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    });
-
-    var bImage = new Image();
-    bImage.src = "assets/tex/" + TEXTURES[id] + "_bump.jpg";
-    bImage.addEventListener('load', function() {
-        // Now that the image has loaded make copy it to the texture.
-        // Bind bump texture in Texture Unit 1
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, bumpTex);
-        gl.uniform1i(gl.getUniformLocation(program, "u_bump"), 1);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bImage);
-    });
-
-    var nImage = new Image();
-    nImage.src = "assets/tex/" + TEXTURES[id] + "_normal.jpg";
-    nImage.addEventListener('load', function() {
-        // Now that the image has loaded make copy it to the texture.
-        // Bind normal texture in Texture Unit 2
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, normalTex);
-        gl.uniform1i(gl.getUniformLocation(program, "u_normal"), 2);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, nImage);
+        gl.bindTexture(gl.TEXTURE_2D, null);
     });
 }
 
@@ -229,15 +193,12 @@ window.onload = function init() {
     browser = checkBrowserType();
     asyncLoadShaders("assignment05", shaders, initWebGL);
     document.addEventListener('keydown', handleKeyDown);
-    uiCheckerSizeVal = document.getElementById("uiCheckerSizeVal");
-    uiBumpAmountVal  = document.getElementById("uiBumpAmountVal");
-
 
     light = new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [-2.0, 0.0, 1.0], animate: true });
     // sphere
     currentObject = new Geometry(SHAPES["Sphere"]);
-    loadTexture(3);
     setTexType(1);
+    setTexture(1);
     setTexMapType(0);
     setCheckerSize(4.0);
     setCheckerColor(1, "#ffffff");
@@ -325,11 +286,35 @@ function resetAxes() {
 function setTexType(type) {
     gl.uniform1i(gl.getUniformLocation(program, "u_vtextureType"), parseInt(type));
     gl.uniform1i(gl.getUniformLocation(program, "u_ftextureType"), parseInt(type));
+    
+    var imgPanel = document.getElementById("imagePanel"), 
+        texPanel = document.getElementById("patternPanel");
+    
+    if (parseInt(type)) {
+        imgPanel.style.border = "2px solid #333";
+        texPanel.style.border = "1px solid #ddd";
+    } else {
+        imgPanel.style.border = "1px solid #ddd";
+        texPanel.style.border = "2px solid #333";
+    }
 }
 
 /* set texture mapping type */
 function setTexMapType(type) {
     gl.uniform1i(gl.getUniformLocation(program, "u_textureMapType"), parseInt(type));
+}
+
+/* set texture image */
+function setTexture(id) {
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, TEXTURES[id].iTex);
+    gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, TEXTURES[id].bTex);
+    gl.uniform1i(gl.getUniformLocation(program, "u_bump"), 1);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, TEXTURES[id].nTex);
+    gl.uniform1i(gl.getUniformLocation(program, "u_normal"), 2);
 }
 
 /* set checker-board color */
@@ -342,7 +327,6 @@ function setCheckerColor(id, value) {
 function setCheckerSize(value) {
     gl.uniform1f(gl.getUniformLocation(program, "u_vcheckerSize"), parseFloat(value));
     gl.uniform1f(gl.getUniformLocation(program, "u_fcheckerSize"), parseFloat(value));
-    uiCheckerSizeVal.innerHTML = value;
 }
 
 /* enable/disable bump */
@@ -358,7 +342,6 @@ function toggleBump() {
 /* set bump amount */
 function setBumpAmount(value) {
     gl.uniform1f(gl.getUniformLocation(program, "u_bumpAmount"), parseFloat(value / 100.0));
-    uiBumpAmountVal.innerHTML = value;
     bump = value;
 }
 
@@ -389,7 +372,7 @@ function handleKeyDown(event){
             resetAxes();
             break;
         case 84: // T key to toggle texture
-            loadTexture(++currentTexture % 7);
+            setTexture(++currentTexture % 6);
             break;
         case 88: // X key to increase bump
             if (bump < 50) { setBumpAmount(++bump); }
