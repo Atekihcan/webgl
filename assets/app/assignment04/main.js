@@ -595,6 +595,7 @@ function setRotation(index, value) {
 }
 
 /* set translation */
+function setTranslation(index, value) {
     uiObjectPosVal[index * 3 + 2].innerHTML = value;
     if (currentObjectID != null) {
         objectsToDraw[currentObjectID].translate[index] = parseFloat(value);
