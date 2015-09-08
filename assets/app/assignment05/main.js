@@ -361,7 +361,6 @@ function setBumpAmount(value) {
     uiBumpAmountVal.innerHTML = value;
     bump = value;
 }
-}
 
 /* enable/disable light */
 function enableLight(flag) {
