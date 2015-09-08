@@ -16,7 +16,7 @@ var texFileNames = ["brick", "rock_wall", "wood", "earth", "moon", "mars"];
 
 var light = null;
 var currentObject = null;
-var currentTexture = 3, lightON = true, bumpON = true, bump = 5.0;
+var currentTexture = 3, lightON = true, bumpON = true, bump = 2.0;
 
 /* mouse controls */
 var lastPosition = [];
@@ -24,7 +24,7 @@ var isMouseDown = false;
 
 /* lights */
 var ambientLight = [0.2, 0.2, 0.2, 1.0];
-var lightThetaX = 30.0, lightThetaY = 60.0;
+var lightThetaX = 0.0, lightThetaY = 60.0;
 
 /* camera/projection matrices */
 var cameraMatrix, pMatrix;
@@ -375,7 +375,7 @@ function handleKeyDown(event){
             setTexture(++currentTexture % 6);
             break;
         case 88: // X key to increase bump
-            if (bump < 50) { setBumpAmount(++bump); }
+            if (bump < 8) { setBumpAmount(++bump); }
             break;
         case 90: // Z key to decrease bump
             if (bump > 0) { setBumpAmount(--bump); }
