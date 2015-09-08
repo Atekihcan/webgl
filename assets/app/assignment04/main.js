@@ -6,15 +6,15 @@ var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false, xzPlaneType = false;
 
 var SHAPES = {
-    // shape name: {id, vbo, number of vertices, details}
-    "Point": { id: 0, vbo: null, numVert: 0, details: 0},
-    "Axis": { id: 1, vbo: null, numVert: 0, details: 100},
-    "Grid": { id: 3, vbo: null, numVert: 0, details: 10},
-    "Plane": { id: 4, vbo: null, numVert: 0, details: 4},
-    "Cube": { id: 5, vbo: null, numVert: 0, details: 0},
-    "Sphere": { id: 6, vbo: null, numVert: 0, details: 3},
-    "Cylinder": { id: 7, vbo: null, numVert: 0, details: 50},
-    "Cone": { id: 8, vbo: null, numVert: 0, details: 50}
+    // shape name: {id, details}
+    "Point": { id: 0, details: 0},
+    "Axis": { id: 1, details: 100},
+    "Grid": { id: 3, details: 10},
+    "Plane": { id: 4, details: 4},
+    "Cube": { id: 5, details: 0},
+    "Sphere": { id: 6, details: 3},
+    "Cylinder": { id: 8, details: 50},
+    "Cone": { id: 9, details: 50}
 };
 
 var AXES = [];
@@ -99,12 +99,15 @@ function initWebGL(shaderSources) {
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
     for (var key in SHAPES) {
+        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details, {pos: true, normal: true});
         SHAPES[key].vbo = gl.createBuffer();
+        SHAPES[key].nbo = gl.createBuffer();
         SHAPES[key].program = program;
         gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].vbo);
-        var v = getPrimitiveVertexData(SHAPES[key].id, SHAPES[key].details);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(v), gl.STATIC_DRAW);
-        SHAPES[key].numVert = v.length / 2;
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(data.v), gl.STATIC_DRAW);
+        SHAPES[key].numVert = data.v.length;
+        gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].nbo);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(data.n), gl.STATIC_DRAW);
     }
 
     // texture and framebuffer for offscreen rendering for object picking
@@ -144,15 +147,14 @@ function loadObjectUniforms(object) {
     gl.uniform4fv(gl.getUniformLocation(program, "u_matSpecular"), flatten(object.matSpecular));
 
     if (object.shape == 0) {
-        var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
+        var mvMatrix = mult(cameraMatrix, translate(object.translate[0], object.translate[1], object.translate[2]));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
     } else {
-        var mvMatrix = mult(cameraMatrix, translate(object.center[0], object.center[1], object.center[2]));
+        var mvMatrix = mult(cameraMatrix, translate(object.translate[0], object.translate[1], object.translate[2]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[2], [0, 0, 1]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[1], [0, 1, 0]));
         mvMatrix = mult(mvMatrix, rotate(object.rotate[0], [1, 0, 0]));
         mvMatrix = mult(mvMatrix, scale(object.scale[0], object.scale[1], object.scale[2]));
-        mvMatrix = mult(mvMatrix, translate(object.translate[0] - object.center[0], object.translate[1] - object.center[1], object.translate[2] - object.center[2]));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_mvMatrix"), false, flatten(mvMatrix));
         var normMatrix = toInverseMat3(mvMatrix);
         if (normMatrix != null) {
@@ -160,21 +162,22 @@ function loadObjectUniforms(object) {
             gl.uniformMatrix3fv(gl.getUniformLocation(program, "u_normMatrix"), false, flatten(normMatrix));
         }
         var transformedPointLightPos = [];
-        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[0].center, 1.0)));
-        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[1].center, 1.0)));
-        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[2].center, 1.0)));
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[0].translate, 1.0)));
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[1].translate, 1.0)));
+        transformedPointLightPos.push(multMatVect(cameraMatrix, vec4(LIGHTS[2].translate, 1.0)));
         gl.uniform4fv(gl.getUniformLocation(program, "u_pointLightPos"), flatten(transformedPointLightPos));
     }
 }
 
 /* upload vertex data to GPU */
-function loadVertexAttribs(vbo) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+function loadVertexAttribs(ctx) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.vbo);
     var vPos = gl.getAttribLocation(program, "vPos");
-    gl.vertexAttribPointer(vPos, 3, gl.FLOAT, false, sizeof['vec3'] * 2, 0);
+    gl.vertexAttribPointer(vPos, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPos);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.nbo);
     var vNorm = gl.getAttribLocation(program, "vNorm");
-    gl.vertexAttribPointer(vNorm, 3, gl.FLOAT, false, sizeof['vec3'] * 2, sizeof['vec3']);
+    gl.vertexAttribPointer(vNorm, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vNorm);
 }
 
@@ -185,13 +188,13 @@ function render() {
         gl.uniform1i(gl.getUniformLocation(program, "u_offscreen"), 0);
         loadGlobalUniforms();
         AXES.forEach(function(object) {
-            loadVertexAttribs(object._gl.vbo);
+            loadVertexAttribs(object._gl);
             loadObjectUniforms(object);
             object.draw(gl, false);
         });
         var i = 0;
         LIGHTS.forEach(function(object) {
-            loadVertexAttribs(object._gl.vbo);
+            loadVertexAttribs(object._gl);
             loadObjectUniforms(object);
             object.draw(gl, false);
             if (object.animate) {
@@ -200,7 +203,7 @@ function render() {
             i++;
         });
         objectsToDraw.forEach(function(object) {
-            loadVertexAttribs(object._gl.vbo);
+            loadVertexAttribs(object._gl);
             loadObjectUniforms(object);
             object.draw(gl, false);
         });
@@ -216,7 +219,7 @@ function renderOffline() {
         var i = 0;
         objectsToDraw.forEach(function(object) {
             gl.uniform3fv(gl.getUniformLocation(program, "u_color"), flatten(encodeColor(i)));
-            loadVertexAttribs(object._gl.vbo);
+            loadVertexAttribs(object._gl);
             loadObjectUniforms(object);
             object.draw(gl, true);
             i++;
@@ -224,7 +227,7 @@ function renderOffline() {
         var j = 1;
         LIGHTS.forEach(function(object) {
             gl.uniform3fv(gl.getUniformLocation(program, "u_color"), flatten([0.0, 0.0, (j % 16) / 255.0]));
-            loadVertexAttribs(object._gl.vbo);
+            loadVertexAttribs(object._gl);
             loadObjectUniforms(object);
             object.draw(gl, true);
             j++;
@@ -264,21 +267,21 @@ window.onload = function init() {
     }
 
     AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0] }));
-    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0]  }));
+    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0] }));
     AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], center: [1.0, 0.0, 0.0], animate: true }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], center: [0.0, 1.0, 0.0], animate: true }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], center: [0.0, 0.0, 1.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [1.0, 0.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [0.0, 1.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [0.0, 0.0, 1.0], animate: true }));
     // spheres
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [-0.5, 0.3, 0.0], scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [0.0, 0.3, 0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true, material: "Brass" }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { center: [0.0, 0.3, -0.5], scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true, material: "Brass" }));
     // cylinders
-    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { center: [2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
-    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { center: [-2.0, 0.3, 0.0], scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
+    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
+    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
     // cone
-    objectsToDraw.push(new Geometry(SHAPES["Cone"], { center: [0.0, 0.77, 0.0], scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Silver" }));
+    objectsToDraw.push(new Geometry(SHAPES["Cone"], { scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Silver" }));
     rePopulateShapeSelector();
     render();
 };
@@ -375,7 +378,7 @@ function getMouseDown(event) {
         }
     }
     if (mouseMode == "Draw") {
-        objectsToDraw.push(new Geometry(SHAPES[currentShape], { center: [clip[0], clip[1], 0.0], lighting: true, render: false }));
+        objectsToDraw.push(new Geometry(SHAPES[currentShape], { translate: [clip[0], clip[1], 0.0], lighting: true, render: false }));
         // add new object to shape select list
         rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
@@ -457,7 +460,7 @@ function getTouchStart(event) {
         }
     }
     if (mouseMode == "Draw") {
-        objectsToDraw.push(new Geometry(SHAPES[currentShape], { center: [clip[0], clip[1], 0.0], lighting: true, render: false }));
+        objectsToDraw.push(new Geometry(SHAPES[currentShape], { translate: [clip[0], clip[1], 0.0], lighting: true, render: false }));
         // add new object to shape select list
         rePopulateShapeSelector();
         currentObjectID = objectsToDraw.length - 1;
@@ -556,7 +559,7 @@ function selectLight(value) {
         uiPointLightOn.checked           = LIGHTS[currentLightID].enabled;
         uiAnimatePointLight.checked      = LIGHTS[currentLightID].animate;
         for (var i = 0; i < 3; i++) {
-            temp = roundDown(LIGHTS[currentLightID].center[i]);
+            temp = roundDown(LIGHTS[currentLightID].translate[i]);
             uiPointLightPos[i].value = temp;
             uiPointLightPosVal[i].innerHTML = temp;
         }
@@ -579,7 +582,7 @@ function setColor(value) {
 function setScale(index, value) {
     uiObjectPosVal[index * 3].innerHTML = value;
     if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].scale[index] = value;
+        objectsToDraw[currentObjectID].scale[index] = parseFloat(value);
     }
 }
 
@@ -587,13 +590,13 @@ function setScale(index, value) {
 function setRotation(index, value) {
     uiObjectPosVal[index * 3 + 1].innerHTML = value;
     if (currentObjectID != null) {
-        objectsToDraw[currentObjectID].rotate[index] = value;
+        objectsToDraw[currentObjectID].rotate[index] = parseFloat(value);
     }
 }
 
 /* set translation */
 function setTranslation(index, value) {
-    uiObjectPosVal[index * 3 + 2].innerHTML = value;
+    uiObjectPosVal[index * 3 + 2].innerHTML = parseFloat(value);
     if (currentObjectID != null) {
         objectsToDraw[currentObjectID].translate[index] = value;
     }
@@ -737,7 +740,7 @@ function setPointLightColor(value) {
 }
 
 function setPointLightPos(index, value) {
-    LIGHTS[currentLightID].center[index] = value;
+    LIGHTS[currentLightID].translate[index] = value;
     uiPointLightPosVal[index].innerHTML = value;
 }
 
@@ -749,7 +752,7 @@ function animatePointLight(value) {
     LIGHTS[currentLightID].animate = value;
     if (!value) {
         for (var i = 0; i < 3; i++) {
-            var temp = roundDown(LIGHTS[currentLightID].center[i]);
+            var temp = roundDown(LIGHTS[currentLightID].translate[i]);
             uiPointLightPos[i].value = temp;
             uiPointLightPosVal[i].innerHTML = temp;
         }
@@ -825,13 +828,13 @@ function animateLight(id, type, offset) {
         b = 1.5 * Math.cos(radians(lightTheta));
     switch (type) {
         case 0: // circle in xy plane
-            LIGHTS[id].center = [a, b, offset];
+            LIGHTS[id].translate = [a, b, offset];
             break;
         case 1: // circle in xz plane
-            LIGHTS[id].center = [-a, offset, b];
+            LIGHTS[id].translate = [-a, offset, b];
             break;
         case 2: // circle in yz plane
-            LIGHTS[id].center = [offset, a, -b];
+            LIGHTS[id].translate = [offset, a, -b];
             break;
     }
     lightTheta += 1.0;

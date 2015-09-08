@@ -7,11 +7,11 @@ varying vec3 fNorm;
 uniform int u_lightON;
 uniform int u_pointLightOn;
 uniform int u_ambientLightOn;
-uniform vec3 u_ambientLight;
-uniform vec3 u_pointLightSpecular;
-uniform vec3 u_pointLightDiffuse;
+uniform vec4 u_ambientLight;
+uniform vec4 u_pointLightSpecular;
+uniform vec4 u_pointLightDiffuse;
 uniform vec4 u_pointLightPos;
-uniform vec4 u_matColor;
+uniform vec4 u_matDiffuse;
 
 /* offscreen uniforms for picking */
 uniform int u_offscreen;
@@ -22,7 +22,7 @@ void main()
     if (u_offscreen == 1) {
         gl_FragColor = vec4(u_color, 1.0);
     } else {
-        vec3 lightWeight;
+        vec4 lightWeight;
         if (u_lightON != 0) {
             if (u_pointLightOn != 0) {
                 vec4 lightDirection = normalize(u_pointLightPos - fPos);
@@ -41,8 +41,8 @@ void main()
                     lightWeight = u_ambientLight;
             }
         } else {
-            lightWeight = vec3(1.0, 1.0, 1.0);
+            lightWeight = vec4(1.0, 1.0, 1.0, 1.0);
         }
-        gl_FragColor = vec4((lightWeight * u_matColor.rgb), 1.0);
+        gl_FragColor = lightWeight * u_matDiffuse;
     }
 }
