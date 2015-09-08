@@ -5,6 +5,7 @@ var canvas, gl, program, pickBuf, browser;
 var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false;
 
+var SHAPES = {
     // shape name: {id, details}
     "Point": { id: 0, details: 0},
     "Axis": { id: 1, details: 100},
