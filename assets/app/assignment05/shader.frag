@@ -1,4 +1,3 @@
-#extension GL_OES_standard_derivatives : enable
 precision mediump float;
 
 varying float bump;
@@ -10,9 +9,8 @@ varying vec3 fBiTangent;
 /* texture */
 varying vec2 fTexCoord;
 uniform int u_ftextureType;
-uniform int u_fbumpEnabled;
 uniform float u_fcheckerSize;
-uniform sampler2D u_bump;
+uniform sampler2D u_normal;
 uniform sampler2D u_texture;
 uniform vec4 u_checkerColor_1;
 uniform vec4 u_checkerColor_2;
@@ -42,23 +40,13 @@ void main()
 
     if (u_ftextureType != 0) {
         texDiffuse = texture2D(u_texture, fTexCoord);
+        vec4 map = 2.0 * texture2D(u_normal, fTexCoord) - 1.0;
+        vec3 t = normalize(cross(fNorm, vec3(0.0, 1.0, 0.0)));
+        vec3 b = normalize(cross(fNorm, t));
+        normal = vec4(normalize(map.r * t + map.g * b + map.b * fNorm), 0.0);
     } else {
         texDiffuse = createCheckerBoard(fTexCoord);
     }
-
-#ifdef GL_OES_standard_derivatives
-    if (u_fbumpEnabled != 0) {
-        // Differentiate the position vector
-        vec3 dPositiondx = dFdx(normalize(fPos).xyz);
-        vec3 dPositiondy = dFdy(normalize(fPos).xyz);
-        float dDepthdx = dFdx(bump);
-        float dDepthdy = dFdy(bump);
-        dPositiondx -= 10.0 * dDepthdx * fNorm;
-        dPositiondy -= 10.0 * dDepthdy * fNorm;
-        // The normal is the cross product of the differentials
-        normal = vec4(normalize(cross(dPositiondx, dPositiondy)), 0.0);
-    }
-#endif
 
     if (u_pointLightOn != 0) {
         vec4 lightDirection = normalize(u_pointLightPos - fPos);
