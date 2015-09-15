@@ -23,7 +23,6 @@ function Geometry(shapeObject, property) {
     this.matSpecular  = [0.0, 0.0, 0.0, 1.0];
     this.matShininess = 100.0;
     this.lighting     = false;
-    this.texture      = false;
     this.symmetry     = true;
     this.fill         = true;
     this.wireFrame    = false;
