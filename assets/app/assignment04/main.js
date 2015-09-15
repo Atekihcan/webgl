@@ -7,21 +7,21 @@ var stopRender = false, xzPlaneType = false;
 
 var SHAPES = {
     // shape name: {id, details}
-    "Point": { id: 0, details: 0},
-    "Axis": { id: 1, details: 100},
-    "Grid": { id: 3, details: 10},
-    "Plane": { id: 4, details: 4},
-    "Cube": { id: 5, details: 0},
-    "Sphere": { id: 6, details: 3},
-    "Cylinder": { id: 8, details: 50},
-    "Cone": { id: 9, details: 50}
+    "point": { id: 0, details: 0},
+    "axis": { id: 1, details: 100},
+    "grid": { id: 3, details: 10},
+    "square": { id: 4, details: 4},
+    "cube": { id: 5, details: 0},
+    "sphere": { id: 6, details: 3},
+    "cylinder": { id: 8, details: 50},
+    "cone": { id: 9, details: 50}
 };
 
 var AXES = [];
 var LIGHTS = [];
 var shapeBufs = [];
 var objectsToDraw = [];
-var currentShape  = "Sphere";
+var currentShape  = "sphere";
 var currentObjectID = null;
 var currentLightID = 0;
 
@@ -99,7 +99,12 @@ function initWebGL(shaderSources) {
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
     for (var key in SHAPES) {
-        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details, {pos: true, normal: true});
+        if (key == "sphere") {
+            var jsonData = loadFileAJAX("/webgl/assets/models/icosphere.json", true);
+        } else {
+            var jsonData = loadFileAJAX("/webgl/assets/models/" + key + ".json", true);
+        }
+        var data = JSON.parse(jsonData);
         SHAPES[key].vbo = gl.createBuffer();
         SHAPES[key].nbo = gl.createBuffer();
         SHAPES[key].program = program;
@@ -266,22 +271,22 @@ window.onload = function init() {
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
 
-    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0] }));
-    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0] }));
-    AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [1.0, 0.0, 0.0], animate: true }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [0.0, 1.0, 0.0], animate: true }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [0.0, 0.0, 1.0], animate: true }));
+    AXES.push(new Geometry(SHAPES["axis"], { matDiffuse: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0] }));
+    AXES.push(new Geometry(SHAPES["axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0] }));
+    AXES.push(new Geometry(SHAPES["grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+    LIGHTS.push(new Geometry(SHAPES["point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [1.0, 0.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [0.0, 1.0, 0.0], animate: true }));
+    LIGHTS.push(new Geometry(SHAPES["point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [0.0, 0.0, 1.0], animate: true }));
     // spheres
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true, material: "Brass" }));
-    objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["sphere"], { scale: [0.3, 0.3, 0.3], translate: [-0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, 0.5], lighting: true, material: "Brass" }));
+    objectsToDraw.push(new Geometry(SHAPES["sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.0, 0.3, -0.5], lighting: true, material: "Brass" }));
     // cylinders
-    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
-    objectsToDraw.push(new Geometry(SHAPES["Cylinder"], { scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
+    objectsToDraw.push(new Geometry(SHAPES["cylinder"], { scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
+    objectsToDraw.push(new Geometry(SHAPES["cylinder"], { scale: [0.3, 0.3, 0.3], rotate: [90, 0, 0], translate: [-2.0, 0.3, 0.0], lighting: true, material: "Copper" }));
     // cone
-    objectsToDraw.push(new Geometry(SHAPES["Cone"], { scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Silver" }));
+    objectsToDraw.push(new Geometry(SHAPES["cone"], { scale: [0.3, 0.3, 0.25], rotate: [270, 0, 0], translate: [0.0, 0.77, 0.0], lighting: true, material: "Silver" }));
     rePopulateShapeSelector();
     render();
 };
@@ -636,7 +641,7 @@ function selectShape(shapeType) {
     if (currentObjectID != null) {
         objectsToDraw[currentObjectID].selected = false;
     }
-    currentShape = shapeType;
+    currentShape = shapeType.toLowerCase();
     canvas.style.cursor = "crosshair";
     uiShapeSelector.selectedIndex = 0;
     currentObjectID = null;
@@ -688,9 +693,9 @@ function handleKeyDown(event){
         case 84: // T key to toggle xz grid/plane
             AXES.splice(2, 1);
             if (xzPlaneType) {
-                AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+                AXES.push(new Geometry(SHAPES["grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
             } else {
-                AXES.push(new Geometry(SHAPES["Plane"], { material: "White Plastic", rotate: [90, 45, 0], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
+                AXES.push(new Geometry(SHAPES["square"], { material: "White Plastic", rotate: [90, 45, 0], scale: [zoom * 1.5, zoom * 1.5, 0], lighting: true }));
             }
             xzPlaneType = !xzPlaneType;
             break;

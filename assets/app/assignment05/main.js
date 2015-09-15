@@ -6,9 +6,9 @@ var shaders = ["shader.vert", "shader.frag"];
 var stopRender = false;
 
 var SHAPES = {
-    // shape name: {id, vbo, number of vertices, details}
-    "Point": { id: 0, details: 0},
-    "Sphere": { id: 7, details: 50 },
+    // shape name: {id, details}
+    "point": { id: 0, details: 0},
+    "sphere": { id: 7, details: 50 },
 };
 
 var TEXTURES = [];
@@ -77,7 +77,8 @@ function initWebGL(shaderSources) {
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
     for (var key in SHAPES) {
-        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details, { pos: true, index: true, normal: true, texture: true });
+        var jsonData = loadFileAJAX("/webgl/assets/models/" + key + ".json", true);
+        var data = JSON.parse(jsonData);
         SHAPES[key].vbo = gl.createBuffer();
         SHAPES[key].ibo = gl.createBuffer();
         SHAPES[key].nbo = gl.createBuffer();
@@ -194,9 +195,9 @@ window.onload = function init() {
     asyncLoadShaders("assignment05", shaders, initWebGL);
     document.addEventListener('keydown', handleKeyDown);
 
-    light = new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [-2.0, 0.0, 1.0], animate: true });
+    light = new Geometry(SHAPES["point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], matSpecular: [1.0, 1.0, 1.0, 1.0], translate: [-2.0, 0.0, 1.0], animate: true });
     // sphere
-    currentObject = new Geometry(SHAPES["Sphere"]);
+    currentObject = new Geometry(SHAPES["sphere"]);
     setTexType(1);
     setTexture(1);
     setTexMapType(0);

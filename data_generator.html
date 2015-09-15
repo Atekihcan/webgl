@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="WebGL based applications" />
+    <meta name="keywords" content="atekihcan, graphics, webgl, opengl, coursera" />
+    <link rel="shortcut icon" href="/assets/img/favicon.png" type="image/x-icon">
+    <title>data_generator</title>
+    <!-- stylesheets and javascripts -->
+    <link media="all" href="http://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link media="all" href="http://netdna.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" rel="stylesheet">
+    <link media="all" rel="stylesheet" href="assets/css/site.css">
+    <script type="text/javascript" src="assets/js/MV.js"></script>
+    <script type="text/javascript" src="assets/js/data_generator.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <div class="page">
+                <header class="page-header">
+                    <h3 class="page-subtitle"> Data Generator </h3>
+                </header>
+                <article class="page-content">
+                    <div class="col-md-8 col-md-offset-2 text-center">
+                        <select id="ui_shapeType">
+                            <option>Point</option>
+                            <option>Axis</option>
+                            <option>Line</option>
+                            <option>Grid</option>
+                            <option selected="selected">Polygon</option>
+                            <option>Cube</option>
+                            <option>Icosahedron</option>
+                            <option>Sphere</option>
+                            <option>Cylinder</option>
+                            <option>Cone</option>
+                        </select>
+                        <input id="ui_shapeDetail" type="number" min="0" max="100" step="1" value="4" />
+                        <button type="button" onclick="dumpData()">Generate</button>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-offset-3 col-lg-6">
+                <div class="row">
+                    <div class="col-xs-12 text-center">
+                        &copy; Atekihcan 2007 - 2015
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

@@ -7,20 +7,20 @@ var stopRender = false;
 
 var SHAPES = {
     // shape name: {id, details}
-    "Point": { id: 0, details: 0},
-    "Axis": { id: 1, details: 100},
-    "Grid": { id: 3, details: 10},
-    "Cube": { id: 5, details: 0},
-    "Sphere": { id: 6, details: 3},
-    "Cylinder": { id: 8, details: 50},
-    "Cone": { id: 9, details: 50}
+    "point": { id: 0, details: 0},
+    "axis": { id: 1, details: 100},
+    "grid": { id: 3, details: 10},
+    "cube": { id: 5, details: 0},
+    "sphere": { id: 6, details: 3},
+    "cylinder": { id: 8, details: 50},
+    "cone": { id: 9, details: 50}
 };
 
 var AXES = [];
 var LIGHTS = [];
 var shapeBufs = [];
 var objectsToDraw = [];
-var currentShape  = "Sphere";
+var currentShape  = "sphere";
 var currentObjectID = null;
 
 /* mouse controls */
@@ -50,8 +50,6 @@ var cameraMatrix, pMatrix;
 const at = [0.0, 0.0, 0.0];
 const up = [0.0, 1.0, 0.0];
 var zoom = 4.0, theta = 30.0, phi = 30.0;
-
-var VERT_STRIDE  = sizeof['vec3'] + sizeof['vec3'];
 
 /***************************************************
  *                  WebGL functions                *
@@ -98,7 +96,12 @@ function initWebGL(shaderSources) {
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
     for (var key in SHAPES) {
-        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details, {pos: true, normal: true});
+        if (key == "sphere") {
+            var jsonData = loadFileAJAX("/webgl/assets/models/icosphere.json", true);
+        } else {
+            var jsonData = loadFileAJAX("/webgl/assets/models/" + key + ".json", true);
+        }
+        var data = JSON.parse(jsonData);
         SHAPES[key].vbo = gl.createBuffer();
         SHAPES[key].nbo = gl.createBuffer();
         SHAPES[key].program = program;
@@ -242,12 +245,12 @@ window.onload = function init() {
         uiPointLightPosVal.push(document.getElementById('uiPointLightPosVal_' + i));
     }
 
-    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0] }));
-    AXES.push(new Geometry(SHAPES["Axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0] }));
-    AXES.push(new Geometry(SHAPES["Grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
-    LIGHTS.push(new Geometry(SHAPES["Point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], translate: pointLightPos }));
+    AXES.push(new Geometry(SHAPES["axis"], { matDiffuse: [1.0, 0.0, 0.0, 1.0], scale: [zoom, 0, 0] }));
+    AXES.push(new Geometry(SHAPES["axis"], { matDiffuse: [0.0, 1.0, 0.0, 1.0], rotate: [0, 0, 90], scale: [zoom, 0, 0] }));
+    AXES.push(new Geometry(SHAPES["grid"], { matDiffuse: [0.5, 0.5, 0.5, 1.0], rotate: [90, 0, 0], scale: [zoom, zoom, 0] }));
+    LIGHTS.push(new Geometry(SHAPES["point"], { matDiffuse: [1.0, 1.0, 1.0, 1.0], translate: pointLightPos }));
     //debug
-    //objectsToDraw.push(new Geometry(SHAPES["Sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
+    //objectsToDraw.push(new Geometry(SHAPES["sphere"], { scale: [0.3, 0.3, 0.3], translate: [0.5, 0.3, 0.0], lighting: true, material: "Brass" }));
     //rePopulateShapeSelector();
     render();
 };
@@ -564,7 +567,7 @@ function selectShape(shapeType) {
     if (currentObjectID != null) {
         objectsToDraw[currentObjectID].selected = false;
     }
-    currentShape = shapeType;
+    currentShape = shapeType.toLowerCase();
     canvas.style.cursor = "crosshair";
     uiShapeSelector.selectedIndex = 0;
     currentObjectID = null;
