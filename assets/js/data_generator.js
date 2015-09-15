@@ -199,7 +199,6 @@ function getCubeData() {
     data.v.push(cubeVert[1], cubeVert[5], cubeVert[4], cubeVert[1], cubeVert[4], cubeVert[0]);
     for (var i = 0; i < 6; i++ ) { data.n.push([0.0, -1.0, 0.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
-    
     return data;
 }
 
