@@ -36,7 +36,7 @@ var isMouseDown = false;
 var cameraMatrix, pMatrix;
 const at = [0.0, 0.0, 0.0];
 const up = [0.0, 1.0, 0.0];
-var zoom = 4.0, angleX = 0.0, angleY = 0.0;
+var zoom = 4.0, angleX = 30.0, angleY = -30.0;
 
 
 /***************************************************
@@ -245,7 +245,7 @@ function getMouseWheel(event) {
 
 /* reset axes rotation */
 function resetAxes() {
-    zoom = 4.0, angleX = 0.0, angleY = 0.0;
+    zoom = 4.0, angleX = 30.0, angleY = -30.0;
     changeCameraPosition();
 }
 
