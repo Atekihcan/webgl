@@ -137,8 +137,13 @@ function moveDirection(now, last) {
  *              other utility functions            *
  ***************************************************/
 /* return sign of a number */
-function sign(num) {
-    return num ? num < 0 ? -1 : 1 : 1;
+function sign(num, zeroSign) {
+    setDefault(zeroSign, false);
+    if (zeroSign) {
+        return num ? num < 0 ? -1 : 1 : 0;
+    } else {
+        return num ? num < 0 ? -1 : 1 : 1;
+    }
 }
 
 /* convert hex color string to rgb */

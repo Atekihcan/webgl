@@ -3,7 +3,7 @@
 /* global variables */
 var canvas, gl, program, browser, tex_2048;
 var shaders = ["shader.vert", "shader.frag"];
-var stopRender = false;
+var stopRender = false, E_down = false;
 
 var SHAPES = {
     // shape name: {id, details}
@@ -24,6 +24,9 @@ var SHAPES = {
 };
 
 var GAME, BOARD = [];
+
+/* UI elements */
+var info_panel;
 
 /* mouse controls */
 var lastPosition = [];
@@ -158,6 +161,8 @@ window.onload = function init() {
     browser = checkBrowserType();
     asyncLoadShaders("2048_3d", shaders, initWebGL);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    info_panel = document.getElementById("infoPanel");
     // sphere
     //BOARD.push(new Geometry(SHAPES["2"], { scale: [0.5, 0.5, 0.5] }));
     //BOARD.push(new Geometry(SHAPES["0"], { scale: [0.2, 0.2, 0.2], translate: [0.0, 1.0, 0.0] }));
@@ -247,6 +252,12 @@ function resetAxes() {
 /* capture key press */
 function handleKeyDown(event){
     switch (event.keyCode) {
+        case 69: // E key to explode board
+            if (!E_down) {
+                explodeBoard();
+            }
+            E_down = true;
+            break;
         case 72: // H key show/hide help
             toggleControls('helpPanel');
             break;
@@ -281,6 +292,16 @@ function handleKeyDown(event){
         }
         changeCameraPosition();
         event.preventDefault();
+    }
+};
+
+/* capture key press */
+function handleKeyUp(event){
+    switch (event.keyCode) {
+        case 69: // E key to explode board
+            E_down = false;
+            GAME.updateGUI();
+            break;
     }
 };
 
@@ -331,18 +352,47 @@ function getTiledTexCoords(id) {
     return ret;
 }
 
+/* explode cubes away from center */
+function explodeBoard() {
+    BOARD.forEach(function(object) {
+        for (var i = 0; i < 3; i++) {
+            object.translate[i] += 0.5 * object.translate[i];
+        }
+    });
+}
+
+/* info panel animation */
+function showInfoPanel(msg, t) {
+    info_panel.style.display = "";
+    info_panel.innerHTML = msg;
+    if (t) {
+        fadeInfoPanel(t);
+    }
+}
+
+function fadeInfoPanel(t) {
+    setTimeout(function() {
+        info_panel.style.display = "none";
+    }, t);
+}
+
 /*****************************************************
- * ported from python code
+ * Game logic
  * **************************************************/
+
+var tile_values = [2, 2, 2, 2, 2, 2, 2, 2, 2, 4];
+//var tile_values = [2, 2, 4, 8, 16, 32, 32, 256, 512, 512];
+var flag_1024 = false, flag_2048 = false, flag_4096 = false, flag_8192 = false;
 // Offsets for computing tile indices in each direction.
 // DO NOT MODIFY this dictionary.
-var OFFSETS = {"UP": [1, 0],
-           "DOWN": [-1, 0],
-           "LEFT": [0, 1],
-           "RIGHT": [0, -1]};
+var OFFSETS = {
+    "LEFT": [1, 0],
+    "RIGHT": [-1, 0],
+    "UP": [0, -1],
+    "DOWN": [0, 1]
+};
 
 function merge(line) {
-    console.log(line);
     var tmp = [0, 0, 0, 0];
     var ret = [0, 0, 0, 0];
     var idx = 0;
@@ -370,30 +420,44 @@ function merge(line) {
         }
         idx += 1;
     }
-    console.log(ret);
     return ret;
 }
 
 function TwentyFortyEight() {
     this.initial = {
-                        "UP": [[0, 0], [0, 1], [0, 2], [0, 3]],
-                        "DOWN": [[3, 0], [3, 1], [3, 2], [3, 3]],
-                        "LEFT": [[0, 0], [1, 0], [2, 0], [3, 0]],
-                        "RIGHT": [[0, 3], [1, 3], [2, 3], [3, 3]]
+                        "LEFT": [[0, 0], [0, 1], [0, 2], [0, 3]],
+                        "RIGHT": [[3, 0], [3, 1], [3, 2], [3, 3]],
+                        "UP": [[0, 3], [1, 3], [2, 3], [3, 3]], 
+                        "DOWN": [[0, 0], [1, 0], [2, 0], [3, 0]]
                     };
     
     this.updateGUI = function() {
+        if (this.lost) {
+            showInfoPanel("You lost", 0);
+        }
         BOARD = [];
         for (var i = 0; i < 4; i++) {
             for (var j = 0; j < 4; j++) {
                 var val = this.grid[i][j];
+                if (val == 1024 && !flag_1024) {
+                    showInfoPanel("Sweet", 500);
+                    flag_1024 = true;
+                } else if (val == 2048 && !flag_2048) {
+                    showInfoPanel("You Win", 1000);
+                    flag_2048 = true;
+                } else if (val == 4096 && !flag_4096) {
+                    showInfoPanel("(⊙_◎)", 1000);
+                    flag_4096 = true;
+                } else if (val == 8192 && !flag_8192) {
+                    showInfoPanel("(╯°□°）╯︵ ┻━┻ ", 1000);
+                    flag_8192 = true;
+                }
                 BOARD.push(new Geometry(SHAPES[val.toString()], { scale: [0.2, 0.2, 0.2], translate: [-0.6 + i * 0.4, -0.6 + j * 0.4, 0.0] }));
             }
         }
     };
 
     this.new_tile = function() {
-        var tile_values = [2, 2, 2, 2, 2, 2, 2, 2, 2, 4];
         var x = Math.floor(Math.random() * 4);
         var y = Math.floor(Math.random() * 4);
         
@@ -402,11 +466,34 @@ function TwentyFortyEight() {
             y = Math.floor(Math.random() * 4);
         }
         this.grid[x][y] = tile_values[Math.floor(Math.random() * tile_values.length)];
+        // check for feasible moves
+        var feasible = false;
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                var val = this.grid[i][j];
+                if(val == 0) {
+                    feasible = true;
+                } else {
+                    if (i != 0 && j != 0) {
+                        if (val == this.grid[i - 1][j] || val == this.grid[i][j - 1]) {
+                            feasible = true;
+                        }
+                    } else if  (i != 3 && j != 3) {
+                        if (val == this.grid[i + 1][j] || val == this.grid[i][j + 1]) {
+                            feasible = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (!feasible) {
+            this.lost = true;
+        }
         this.updateGUI();
     };
 
     this.reset = function() {
-        console.log("!!! New Game !!!")
+        showInfoPanel("New Game", 500);
         this.grid = [
                         [0, 0, 0, 0],
                         [0, 0, 0, 0],
@@ -420,47 +507,47 @@ function TwentyFortyEight() {
 
     this.move = function(direction) {
         var moved = false;
-        if (direction == "UP" || direction == "DOWN") {
-            console.log(direction);
-            var temp = [0, 0, 0, 0];
+        var row, col, temp;
+        if (direction == "LEFT" || direction == "RIGHT") {
+            temp = [0, 0, 0, 0];
             for (var i = 0; i < this.initial[direction].length; i++) {
-                var row = this.initial[direction][i][0];
-                var col = this.initial[direction][i][1];
-                for (var i = 0; i < 4; i++) {
-                    temp[i] = this.grid[row][col];
+                row = this.initial[direction][i][0];
+                col = this.initial[direction][i][1];
+                for (var j = 0; j < 4; j++) {
+                    temp[j] = this.grid[row][col];
                     row += OFFSETS[direction][0];
                     col += OFFSETS[direction][1];
                 }
                 temp = merge(temp);
-                for (var i = 0; i < 4; i++) {
-                    if (this.grid[OFFSETS[direction][0] * i + 3 * (1 - OFFSETS[direction][0]) / 2][col] != temp[i]) {
+                for (var k = 0; k < 4; k++) {
+                    if (this.grid[OFFSETS[direction][0] * k + 3 * (1 - OFFSETS[direction][0]) / 2][col] != temp[k]) {
                         moved = true;
                     }
-                    this.grid[OFFSETS[direction][0] * i + 3 * (1 - OFFSETS[direction][0]) / 2][col] = temp[i];
+                    this.grid[OFFSETS[direction][0] * k + 3 * (1 - OFFSETS[direction][0]) / 2][col] = temp[k];
                 }
             }
         } else {
-            console.log(direction);
-            var temp = [0, 0, 0, 0];
+            temp = [0, 0, 0, 0];
             for (var i = 0; i < this.initial[direction].length; i++) {
-                var row = this.initial[direction][i][0];
-                var col = this.initial[direction][i][1];
-                for (var i = 0; i < 4; i++) {
-                    temp[i] = this.grid[row][col];
+                row = this.initial[direction][i][0];
+                col = this.initial[direction][i][1];
+                for (var j = 0; j < 4; j++) {
+                    temp[j] = this.grid[row][col];
                     row += OFFSETS[direction][0];
                     col += OFFSETS[direction][1];
                 }
                 temp = merge(temp);
-                for (var i = 0; i < 4; i++) {
-                    if (this.grid[row][OFFSETS[direction][1] * i + 3 * (1 - OFFSETS[direction][1]) / 2] != temp[i]) {
+                for (var k = 0; k < 4; k++) {
+                    if (this.grid[row][OFFSETS[direction][1] * k + 3 * (1 - OFFSETS[direction][1]) / 2] != temp[k]) {
                         moved = true;
                     }
-                    this.grid[row][OFFSETS[direction][1] * i + 3 * (1 - OFFSETS[direction][1]) / 2] = temp[i];
+                    this.grid[row][OFFSETS[direction][1] * k + 3 * (1 - OFFSETS[direction][1]) / 2] = temp[k];
                 }
             }
         }
-        if (moved)
+        if (moved) {
             this.new_tile();
+        }
     };
 
     this.reset();
