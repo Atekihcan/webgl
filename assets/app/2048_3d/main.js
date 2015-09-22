@@ -7,23 +7,24 @@ var stopRender = false, E_down = false;
 
 var SHAPES = {
     // shape name: {id, details}
-    "0":    { id: 5},
-    "2":    { id: 5},
-    "4":    { id: 5},
-    "8":    { id: 5},
-    "16":   { id: 5},
-    "32":   { id: 5},
-    "64":   { id: 5},
-    "128":  { id: 5},
-    "256":  { id: 5},
-    "512":  { id: 5},
-    "1024": { id: 5},
-    "2048": { id: 5},
-    "4096": { id: 5},
-    "8192": { id: 5}
+    "0":     { id: 5 },
+    "2":     { id: 5 },
+    "4":     { id: 5 },
+    "8":     { id: 5 },
+    "16":    { id: 5 },
+    "32":    { id: 5 },
+    "64":    { id: 5 },
+    "128":   { id: 5 },
+    "256":   { id: 5 },
+    "512":   { id: 5 },
+    "1024":  { id: 5 },
+    "2048":  { id: 5 },
+    "4096":  { id: 5 },
+    "8192":  { id: 5 },
+    "Guide": { id: 5 }
 };
 
-var GAME, BOARD = [];
+var GUIDE, GAME, BOARD = [];
 
 /* UI elements */
 var info_panel, big_info, small_info;
@@ -48,7 +49,6 @@ function initWebGL(shaderSources) {
     canvas.addEventListener("mousedown", getMouseDown, false);
     canvas.addEventListener("mousemove", getMouseMove, false);
     canvas.addEventListener("mouseup", getMouseUp, false);
-    canvas.addEventListener("wheel", getMouseWheel, false);
     canvas.oncontextmenu = function () {
         return false;     // cancel default menu
     };
@@ -68,6 +68,8 @@ function initWebGL(shaderSources) {
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.1, 0.1, 0.2, 1.0);
     gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     // set projection and model-view matrix
     pMatrix = perspective(45.0, canvas.width / canvas.height, 1.0, -1.0);
@@ -85,7 +87,19 @@ function initWebGL(shaderSources) {
     var jsonData = loadFileAJAX("/webgl/assets/models/cube.json", false),
         vertData = JSON.parse(jsonData);
     for (var key in SHAPES) {
-        var tCoord = getTiledTexCoords(Math.log(parseInt(key)) / Math.log(2));
+        var tCoord = [];
+        if (key != "Guide") {
+            tCoord = getTiledTexCoords(Math.log(parseInt(key)) / Math.log(2));
+        } else {
+            tCoord = [
+                        [18 / 20, 0], [19 / 20, 0], [19 / 20, 1], [18 / 20, 0], [19 / 20, 1], [18 / 20, 1], // front
+                        [20 / 20, 0], [19 / 20, 0], [19 / 20, 1], [20 / 20, 0], [19 / 20, 1], [20 / 20, 1], // back
+                        [15 / 20, 0], [14 / 20, 0], [14 / 20, 1], [15 / 20, 0], [14 / 20, 1], [15 / 20, 1], // left
+                        [15 / 20, 0], [16 / 20, 0], [16 / 20, 1], [15 / 20, 0], [16 / 20, 1], [15 / 20, 1], // right
+                        [17 / 20, 0], [17 / 20, 1], [16 / 20, 1], [17 / 20, 0], [16 / 20, 1], [16 / 20, 0], // top
+                        [18 / 20, 1], [18 / 20, 0], [17 / 20, 0], [18 / 20, 1], [17 / 20, 0], [17 / 20, 1], // bottom
+                     ];
+        }
         //console.log(tCoord);
         SHAPES[key].vbo = gl.createBuffer();
         SHAPES[key].tbo = gl.createBuffer();
@@ -152,6 +166,9 @@ function render() {
             loadObjectUniforms(object);
             object.draw(gl, false);
         });
+        loadVertexAttribs(GUIDE._gl);
+        loadObjectUniforms(GUIDE);
+        GUIDE.draw(gl, false);
     }
     window.requestAnimFrame(render);
 }
@@ -165,14 +182,8 @@ window.onload = function init() {
     info_panel = document.getElementById("infoPanel");
     big_info   = document.getElementById("lgInfo");
     small_info = document.getElementById("smInfo");
-    // sphere
-    //BOARD.push(new Geometry(SHAPES["2"], { scale: [0.5, 0.5, 0.5] }));
-    //BOARD.push(new Geometry(SHAPES["0"], { scale: [0.2, 0.2, 0.2], translate: [0.0, 1.0, 0.0] }));
-    //BOARD.push(new Geometry(SHAPES["2"], { scale: [0.2, 0.2, 0.2], translate: [-1.0, 0.5, 0.0] }));
-    //BOARD.push(new Geometry(SHAPES["4"], { scale: [0.2, 0.2, 0.2], translate: [-0.5, 0.5, 0.0] }));
-    //BOARD.push(new Geometry(SHAPES["8"], { scale: [0.2, 0.2, 0.2], translate: [0.0, 0.5, 0.0] }));
-    //BOARD.push(new Geometry(SHAPES["16"], { scale: [0.2, 0.2, 0.2], translate: [0.5, 0.5, 0.0] }));
-    //BOARD.push(new Geometry(SHAPES["32"], { scale: [0.2, 0.2, 0.2], translate: [1.0, 0.5, 0.0] }));
+    // Guide
+    GUIDE = new Geometry(SHAPES["Guide"], { scale: [0.81, 0.81, 0.81], translate: [0.0, 0.0, 0.0] });
     GAME = new TwentyFortyEight();
     render();
 };
@@ -234,17 +245,6 @@ function getMouseUp(event) {
     }
 }
 
-/* mouse wheel event handler */
-function getMouseWheel(event) {
-    if (event.deltaY > 0) {
-        changeCameraZoom(false);
-    } else {
-        changeCameraZoom(true);
-    }
-    changeCameraPosition();
-    event.preventDefault();
-}
-
 /* reset axes rotation */
 function resetAxes() {
     zoom = 4.0, angleX = 30.0, angleY = -30.0;
@@ -279,12 +279,6 @@ function handleKeyDown(event){
 
     if (event.keyCode > 32 && event.keyCode < 41) {
         switch (event.keyCode) {
-            case 33: // page up to zoom in
-                changeCameraZoom(true);
-                break;
-            case 34: // page down to zoom out
-                changeCameraZoom(false);
-                break;
             case 37: // left
                 GAME.move("LEFT");
                 break;
@@ -301,7 +295,7 @@ function handleKeyDown(event){
         changeCameraPosition();
         event.preventDefault();
     }
-};
+}
 
 /* capture key press */
 function handleKeyUp(event){
@@ -311,28 +305,6 @@ function handleKeyUp(event){
             GAME.updateGUI();
             break;
     }
-};
-
-/* camera movements */
-function changeCameraZoom(flag) {
-    if (flag) {
-        if (zoom > 3.0) {
-            zoom -= 0.1;
-        }
-        canvas.style.cursor = "zoom-in";
-    } else {
-        if (zoom < 5.0) {
-            zoom += 0.1;
-        }
-        canvas.style.cursor = "zoom-out";
-    }
-    setTimeout(function() {
-        if (browser.chrome || browser.safari) {
-            canvas.style.cursor = "-webkit-grab";
-        } else {
-            canvas.style.cursor = "grab";
-        }
-    }, 500);
 }
 
 function changeCameraAngle(dx, dy) {
@@ -347,8 +319,8 @@ function changeCameraAngle(dx, dy) {
 function getTiledTexCoords(id) {
     id = id < 0 ? 0 : id;
     var ret = [];
-    var a = id / 14.0,
-        b = (id + 1) / 14.0;
+    var a = id / 20.0,
+        b = (id + 1) / 20.0;
     
     ret.push([a, 0], [b, 0], [b, 1], [a, 0], [b, 1], [a, 1]); // front
     ret.push([b, 0], [a, 0], [a, 1], [b, 0], [a, 1], [b, 1]); // back
