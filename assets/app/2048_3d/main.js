@@ -3,31 +3,40 @@
 /* global variables */
 var canvas, gl, program, browser, tex_2048;
 var shaders = ["shader.vert", "shader.frag"];
-var stopRender = false, E_down = false;
+var stopRender = false, D_down = false, E_down = false;
 
 var SHAPES = {
     // shape name: {id, details}
-    "0":     { id: 5 },
-    "2":     { id: 5 },
-    "4":     { id: 5 },
-    "8":     { id: 5 },
-    "16":    { id: 5 },
-    "32":    { id: 5 },
-    "64":    { id: 5 },
-    "128":   { id: 5 },
-    "256":   { id: 5 },
-    "512":   { id: 5 },
-    "1024":  { id: 5 },
-    "2048":  { id: 5 },
-    "4096":  { id: 5 },
-    "8192":  { id: 5 },
-    "Guide": { id: 5 }
+    "0":        { id: 5 },
+    "2":        { id: 5 },
+    "4":        { id: 5 },
+    "8":        { id: 5 },
+    "16":       { id: 5 },
+    "32":       { id: 5 },
+    "64":       { id: 5 },
+    "128":      { id: 5 },
+    "256":      { id: 5 },
+    "512":      { id: 5 },
+    "1024":     { id: 5 },
+    "2048":     { id: 5 },
+    "4096":     { id: 5 },
+    "8192":     { id: 5 },
+    "1048576":  { id: 5 },
+    "Guide":    { id: 5 }
 };
 
-var GUIDE, GAME, BOARD = [], highScore;
+var LEVELS = [
+    { name: "Youngling", best: 0 },
+    { name: "Padawan",   best: 0 },
+    { name: "Knight",    best: 0 },
+    { name: "Master",    best: 0 },
+    { name: "Yoda",      best: 0 },
+];
+
+var GUIDE, GAME, BOARD = [], currentLevel = 1;
 
 /* UI elements */
-var info_panel, big_info, small_info, score_info, best_info;
+var info_panel, big_info, small_info, score_info, move_info, best_info;
 
 /* mouse controls */
 var lastPosition = [];
@@ -92,12 +101,12 @@ function initWebGL(shaderSources) {
             tCoord = getTiledTexCoords(Math.log(parseInt(key)) / Math.log(2));
         } else {
             tCoord = [
-                        [18 / 20, 0], [19 / 20, 0], [19 / 20, 1], [18 / 20, 0], [19 / 20, 1], [18 / 20, 1], // front
-                        [20 / 20, 0], [19 / 20, 0], [19 / 20, 1], [20 / 20, 0], [19 / 20, 1], [20 / 20, 1], // back
-                        [15 / 20, 0], [14 / 20, 0], [14 / 20, 1], [15 / 20, 0], [14 / 20, 1], [15 / 20, 1], // left
-                        [15 / 20, 0], [16 / 20, 0], [16 / 20, 1], [15 / 20, 0], [16 / 20, 1], [15 / 20, 1], // right
-                        [17 / 20, 0], [17 / 20, 1], [16 / 20, 1], [17 / 20, 0], [16 / 20, 1], [16 / 20, 0], // top
-                        [18 / 20, 1], [18 / 20, 0], [17 / 20, 0], [18 / 20, 1], [17 / 20, 0], [17 / 20, 1], // bottom
+                        [18 / 21, 0], [19 / 21, 0], [19 / 21, 1], [18 / 21, 0], [19 / 21, 1], [18 / 21, 1], // front
+                        [20 / 21, 0], [20 / 21, 1], [19 / 21, 1], [20 / 21, 0], [19 / 21, 1], [19 / 21, 0], // back
+                        [14 / 21, 0], [15 / 21, 0], [15 / 21, 1], [14 / 21, 0], [15 / 21, 1], [14 / 21, 1], // left
+                        [16 / 21, 0], [16 / 21, 1], [15 / 21, 1], [16 / 21, 0], [15 / 21, 1], [15 / 21, 0], // right
+                        [16 / 21, 1], [16 / 21, 0], [17 / 21, 0], [16 / 21, 1], [17 / 21, 0], [17 / 21, 1], // top
+                        [17 / 21, 0], [18 / 21, 0], [18 / 21, 1], [17 / 21, 0], [18 / 21, 1], [17 / 21, 1], // bottom
                      ];
         }
         //console.log(tCoord);
@@ -166,9 +175,11 @@ function render() {
             loadObjectUniforms(object);
             object.draw(gl, false);
         });
-        loadVertexAttribs(GUIDE._gl);
-        loadObjectUniforms(GUIDE);
-        GUIDE.draw(gl, false);
+        if (D_down) {
+            loadVertexAttribs(GUIDE._gl);
+            loadObjectUniforms(GUIDE);
+            GUIDE.draw(gl, false);
+        }
     }
     window.requestAnimFrame(render);
 }
@@ -262,6 +273,9 @@ function handleKeyDown(event){
         case 71: // G key for inwards screen
             GAME.move("IN");
             break;
+        case 68: // E key to explode board
+            D_down = true;
+            break;
         case 69: // E key to explode board
             if (!E_down) {
                 explodeBoard();
@@ -302,10 +316,13 @@ function handleKeyDown(event){
 /* capture key press */
 function handleKeyUp(event){
     switch (event.keyCode) {
+        case 68: // D key to show direction
+            D_down = false;
+        break;
         case 69: // E key to explode board
             E_down = false;
             GAME.updateGUI();
-            break;
+        break;
     }
 }
 
@@ -321,15 +338,15 @@ function changeCameraAngle(dx, dy) {
 function getTiledTexCoords(id) {
     id = id < 0 ? 0 : id;
     var ret = [];
-    var a = id / 20.0,
-        b = (id + 1) / 20.0;
+    var a = id / 21.0,
+        b = (id + 1) / 21.0;
     
     ret.push([a, 0], [b, 0], [b, 1], [a, 0], [b, 1], [a, 1]); // front
-    ret.push([b, 0], [a, 0], [a, 1], [b, 0], [a, 1], [b, 1]); // back
-    ret.push([b, 0], [a, 0], [a, 1], [b, 0], [a, 1], [b, 1]); // left
-    ret.push([a, 0], [b, 0], [b, 1], [a, 0], [b, 1], [a, 1]); // right
-    ret.push([b, 0], [b, 1], [a, 1], [b, 0], [a, 1], [a, 0]); // top
-    ret.push([b, 1], [b, 0], [a, 0], [b, 1], [a, 0], [a, 1]); // bottom
+    ret.push([b, 0], [b, 1], [a, 1], [b, 0], [a, 1], [a, 0]); // back
+    ret.push([a, 0], [b, 0], [b, 1], [a, 0], [b, 1], [a, 1]); // left
+    ret.push([b, 0], [b, 1], [a, 1], [b, 0], [a, 1], [a, 0]); // right
+    ret.push([a, 1], [a, 0], [b, 0], [a, 1], [b, 0], [b, 1]); // top
+    ret.push([a, 0], [b, 0], [b, 1], [a, 0], [b, 1], [a, 1]); // bottom
     
     return ret;
 }
@@ -348,7 +365,7 @@ function showInfoPanel(msg, small_msg, t) {
     info_panel.style.display = "";
     big_info.innerHTML = msg;
     small_info.innerHTML = small_msg;
-    if (t) {
+    if (t > 0) {
         fadeInfoPanel(t);
     }
 }
@@ -359,13 +376,27 @@ function fadeInfoPanel(t) {
     }, t);
 }
 
+/* set level and start a new game */
+function setLevel(value) {
+    currentLevel = parseInt(value);
+    GAME.reset();
+}
+
+/* populate level selector */
+$(function(){
+    var $select = $("#levelSelector");
+    for (var i = 1; i <= 5; i++){
+        $select.append($('<option></option>').val(i).html(LEVELS[i - 1].name));
+    }
+});
+
 /*****************************************************
  * Game logic
  * **************************************************/
 
 var tile_values = [2, 2, 2, 2, 2, 2, 2, 2, 2, 4];
 //var tile_values = [512, 512, 512, 512, 512, 512, 512];
-var flag_2048 = false, flag_4096 = false, flag_8192 = false;
+var flag_2048 = false, flag_4096 = false;
 // Offsets for computing tile indices in each direction.
 // DO NOT MODIFY this dictionary.
 var OFFSETS = {
@@ -399,27 +430,30 @@ function merge(line) {
         } else if (tmp[i] == tmp[i + 1]) {
             ret[idx] = 2 * tmp[i];
             i += 2;
-            GAME.score += ret[idx];
+            if (ret[idx] <= 8192) {
+                GAME.score += ret[idx];
+            }
             if (ret[idx] == 1024) {
-                showInfoPanel("Cool", "", 500);
+                showInfoPanel("Cool", "You've got 1024", 500);
             } else if (ret[idx] == 2048) {
                 if (!flag_2048) {
                     showInfoPanel("You Win", "Continue playing or start a new game by pressing 'N'.", 1000);
                     flag_2048 = true;
                 } else {
-                    showInfoPanel("Awesome", "", 500);
+                    showInfoPanel("Awesome", "Another 2048", 500);
                 }
             } else if (ret[idx] == 4096) {
                 if (!flag_4096) {
                     showInfoPanel("(⊙_◎)", "Continue playing or start a new game by pressing 'N'.", 1000);
                     flag_4096 = true;
                 } else {
-                    showInfoPanel("Excellent", "", 500);
+                    showInfoPanel("Excellent", "Another 4096", 500);
                 }
             } else if (ret[idx] == 8192) {
                 showInfoPanel("(╯°□°）╯︵ ┻━┻ ", "Game Over because you're genius!<br/>Press 'N' to start a new game.", 0);
-                flag_8192 = true;
-                this.over = true;
+                GAME.over = true;
+            } else if (ret[idx] > 1048576) {
+                ret[idx] = 1048576;
             }
         } else {
             ret[idx] = tmp[i];
@@ -479,13 +513,14 @@ function TwentyFortyEight() {
             for (var i = 0; i < 4; i++) {
                 for (var j = 0; j < 4; j++) {
                     var val = this.grid[k][i][j];
+                    //console.log(val.toString());
                     BOARD.push(new Geometry(SHAPES[val.toString()], { scale: [0.2, 0.2, 0.2], translate: [-0.6 + i * 0.4, -0.6 + j * 0.4, -0.6 + k * 0.4] }));
                 }
             }
         }
-        highScore = highScore > this.score ? highScore : this.score;
+        LEVELS[currentLevel - 1].best = LEVELS[currentLevel - 1].best > this.score ? LEVELS[currentLevel - 1].best : this.score;
         score_info.innerHTML = this.score;
-        best_info.innerHTML  = highScore;
+        best_info.innerHTML  = LEVELS[currentLevel - 1].best;
     };
 
     this.new_tile = function() {
@@ -499,6 +534,7 @@ function TwentyFortyEight() {
             z = Math.floor(Math.random() * 4);
         }
         this.grid[z][x][y] = tile_values[Math.floor(Math.random() * tile_values.length)];
+
         // check for feasible moves
         var feasible = false;
         for (var i = 0; i < 4; i++) {
@@ -525,8 +561,6 @@ function TwentyFortyEight() {
             this.lost = true;
             this.over = true;
         }
-        
-        this.updateGUI();
     };
 
     this.reset = function() {
@@ -557,11 +591,14 @@ function TwentyFortyEight() {
                         [0, 0, 0, 0]
                     ]
                     ];
-        this.lost = false;
-        this.over = false;
+        this.level = currentLevel;
+        this.lost  = false;
+        this.over  = false;
         this.score = 0;
+        this.numMoves = 0;
         this.new_tile();
         this.new_tile();
+        this.updateGUI();
     };
 
     this.move = function(direction) {
@@ -609,6 +646,22 @@ function TwentyFortyEight() {
         if (moved) {
             this.new_tile();
         }
+        
+        this.numMoves++;
+        // add blocking tiles every 5*level moves
+        if (this.numMoves && this.numMoves % ((6 - this.level) * 5) == 0) {
+            var x = Math.floor(Math.random() * 4);
+            var y = Math.floor(Math.random() * 4);
+            var z = Math.floor(Math.random() * 4);
+            
+            while(this.grid[z][x][y]) {
+                x = Math.floor(Math.random() * 4);
+                y = Math.floor(Math.random() * 4);
+                z = Math.floor(Math.random() * 4);
+            }
+            this.grid[z][x][y] = 1048576;
+        }
+        this.updateGUI();
     };
 
     this.reset();

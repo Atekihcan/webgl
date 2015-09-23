@@ -180,23 +180,23 @@ function getCubeData() {
     for (var i = 0; i < 6; i++ ) { data.n.push([0.0, 0.0, 1.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
     // back
-    data.v.push(cubeVert[4], cubeVert[5], cubeVert[6], cubeVert[4], cubeVert[6], cubeVert[7]);
+    data.v.push(cubeVert[4], cubeVert[7], cubeVert[6], cubeVert[4], cubeVert[6], cubeVert[5]);
     for (var i = 0; i < 6; i++ ) { data.n.push([0.0, 0.0, -1.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
     // left
-    data.v.push(cubeVert[0], cubeVert[4], cubeVert[7], cubeVert[0], cubeVert[7], cubeVert[3]);
+    data.v.push(cubeVert[4], cubeVert[0], cubeVert[3], cubeVert[4], cubeVert[3], cubeVert[7]);
     for (var i = 0; i < 6; i++ ) { data.n.push([-1.0, 0.0, 0.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
     // right
-    data.v.push(cubeVert[1], cubeVert[5], cubeVert[6], cubeVert[1], cubeVert[6], cubeVert[2]);
+    data.v.push(cubeVert[5], cubeVert[6], cubeVert[2], cubeVert[5], cubeVert[2], cubeVert[1]);
     for (var i = 0; i < 6; i++ ) { data.n.push([1.0, 0.0, 0.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
     // top
-    data.v.push(cubeVert[2], cubeVert[6], cubeVert[7], cubeVert[2], cubeVert[7], cubeVert[3]);
+    data.v.push(cubeVert[7], cubeVert[3], cubeVert[2], cubeVert[7], cubeVert[2], cubeVert[6]);
     for (var i = 0; i < 6; i++ ) { data.n.push([0.0, 1.0, 0.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
     // bottom
-    data.v.push(cubeVert[1], cubeVert[5], cubeVert[4], cubeVert[1], cubeVert[4], cubeVert[0]);
+    data.v.push(cubeVert[4], cubeVert[5], cubeVert[1], cubeVert[4], cubeVert[1], cubeVert[0]);
     for (var i = 0; i < 6; i++ ) { data.n.push([0.0, -1.0, 0.0]); }
     data.t.push([0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]);
     return data;
