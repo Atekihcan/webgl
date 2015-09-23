@@ -24,10 +24,10 @@ var SHAPES = {
     "Guide": { id: 5 }
 };
 
-var GUIDE, GAME, BOARD = [];
+var GUIDE, GAME, BOARD = [], highScore;
 
 /* UI elements */
-var info_panel, big_info, small_info;
+var info_panel, big_info, small_info, score_info, best_info;
 
 /* mouse controls */
 var lastPosition = [];
@@ -182,6 +182,8 @@ window.onload = function init() {
     info_panel = document.getElementById("infoPanel");
     big_info   = document.getElementById("lgInfo");
     small_info = document.getElementById("smInfo");
+    score_info = document.getElementById("scoreInfo");
+    best_info  = document.getElementById("bestInfo");
     // Guide
     GUIDE = new Geometry(SHAPES["Guide"], { scale: [0.81, 0.81, 0.81], translate: [0.0, 0.0, 0.0] });
     GAME = new TwentyFortyEight();
@@ -346,7 +348,6 @@ function showInfoPanel(msg, small_msg, t) {
     info_panel.style.display = "";
     big_info.innerHTML = msg;
     small_info.innerHTML = small_msg;
-    console.log(small_info.textContent);
     if (t) {
         fadeInfoPanel(t);
     }
@@ -364,7 +365,7 @@ function fadeInfoPanel(t) {
 
 var tile_values = [2, 2, 2, 2, 2, 2, 2, 2, 2, 4];
 //var tile_values = [512, 512, 512, 512, 512, 512, 512];
-var flag_1024 = false, flag_2048 = false, flag_4096 = false, flag_8192 = false;
+var flag_2048 = false, flag_4096 = false, flag_8192 = false;
 // Offsets for computing tile indices in each direction.
 // DO NOT MODIFY this dictionary.
 var OFFSETS = {
@@ -398,6 +399,28 @@ function merge(line) {
         } else if (tmp[i] == tmp[i + 1]) {
             ret[idx] = 2 * tmp[i];
             i += 2;
+            GAME.score += ret[idx];
+            if (ret[idx] == 1024) {
+                showInfoPanel("Cool", "", 500);
+            } else if (ret[idx] == 2048) {
+                if (!flag_2048) {
+                    showInfoPanel("You Win", "Continue playing or start a new game by pressing 'N'.", 1000);
+                    flag_2048 = true;
+                } else {
+                    showInfoPanel("Awesome", "", 500);
+                }
+            } else if (ret[idx] == 4096) {
+                if (!flag_4096) {
+                    showInfoPanel("(⊙_◎)", "Continue playing or start a new game by pressing 'N'.", 1000);
+                    flag_4096 = true;
+                } else {
+                    showInfoPanel("Excellent", "", 500);
+                }
+            } else if (ret[idx] == 8192) {
+                showInfoPanel("(╯°□°）╯︵ ┻━┻ ", "Game Over because you're genius!<br/>Press 'N' to start a new game.", 0);
+                flag_8192 = true;
+                this.over = true;
+            }
         } else {
             ret[idx] = tmp[i];
             i += 1;
@@ -456,24 +479,13 @@ function TwentyFortyEight() {
             for (var i = 0; i < 4; i++) {
                 for (var j = 0; j < 4; j++) {
                     var val = this.grid[k][i][j];
-                    if (val == 1024 && !flag_1024) {
-                        showInfoPanel("Sweet", "", 500);
-                        flag_1024 = true;
-                    } else if (val == 2048 && !flag_2048) {
-                        showInfoPanel("You Win", "Continue playing or start a new game by pressing 'N'.", 1000);
-                        flag_2048 = true;
-                    } else if (val == 4096 && !flag_4096) {
-                        showInfoPanel("(⊙_◎)", "Continue playing or start a new game by pressing 'N'.", 1000);
-                        flag_4096 = true;
-                    } else if (val == 8192 && !flag_8192) {
-                        showInfoPanel("(╯°□°）╯︵ ┻━┻ ", "Game Over because you're genius!<br/>Press 'N' to start a new game.", 0);
-                        flag_8192 = true;
-                        this.over = true;
-                    }
                     BOARD.push(new Geometry(SHAPES[val.toString()], { scale: [0.2, 0.2, 0.2], translate: [-0.6 + i * 0.4, -0.6 + j * 0.4, -0.6 + k * 0.4] }));
                 }
             }
         }
+        highScore = highScore > this.score ? highScore : this.score;
+        score_info.innerHTML = this.score;
+        best_info.innerHTML  = highScore;
     };
 
     this.new_tile = function() {
@@ -547,6 +559,7 @@ function TwentyFortyEight() {
                     ];
         this.lost = false;
         this.over = false;
+        this.score = 0;
         this.new_tile();
         this.new_tile();
     };

@@ -381,9 +381,13 @@ input[type=checkbox] {
     z-index: 1;
     overflow: hidden;
     color: rgba(255, 255, 255, 0.8);
-    padding: 2px;
-    margin-top: -30px;
     border-radius: 5px;
+}
+
+.score-info {
+    font-weight: bold;
+    font-size: 1.4em;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 .thumbnail-panel {
