@@ -59,13 +59,14 @@ function initWebGL(shaderSources) {
 
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
+    var jsonData = loadFileAJAX("/webgl/assets/models/point.json", false),
+        vertData = JSON.parse(jsonData);
     for (var key in SHAPES) {
-        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details);
         SHAPES[key].vbo = gl.createBuffer();
         SHAPES[key].program = program;
         gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(data.v), gl.STATIC_DRAW);
-        SHAPES[key].numVert = data.v.length;
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(vertData.v), gl.STATIC_DRAW);
+        SHAPES[key].numVert = vertData.v.length;
     }
 
     // texture and framebuffer for offscreen rendering for object picking
