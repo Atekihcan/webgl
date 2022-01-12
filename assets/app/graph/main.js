@@ -60,7 +60,7 @@ function initWebGL(shaderSources) {
     // create and load object primitive vertex data
     // most other object types can be created by transforming these primitives
     for (var key in SHAPES) {
-        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details, {pos: true});
+        var data = getPrimitiveData(SHAPES[key].id, SHAPES[key].details);
         SHAPES[key].vbo = gl.createBuffer();
         SHAPES[key].program = program;
         gl.bindBuffer(gl.ARRAY_BUFFER, SHAPES[key].vbo);
